@@ -390,7 +390,7 @@ def insight_list(items: list[str]) -> str:
 
 
 def report_page(title: str, subtitle: str, body: str) -> str:
-    nav = "<a class='active' href='issues/index.html'>주요 쟁점</a><a href='full_html/index.html'>유형별 분석</a><a href='html/index.html'>요약</a>"
+    nav = "<a class='active' href='issues/index.html'>주요 쟁점</a><a href='full_html/index.html'>유형별 분석</a>"
     return dedent(
         f"""\
         <!doctype html>

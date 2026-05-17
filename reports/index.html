@@ -8,16 +8,27 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="site-header-inner">
-      <a class="brand" href="index.html">PIPC Insight</a>
-      <nav>
-        <a class="active" href="index.html">홈</a>
-        <a href="issues/index.html">주요 쟁점</a>
-        <a href="full_html/index.html">유형별 분석</a>
-        <a href="html/index.html">요약</a>
-        <a href="full_html/data_quality.html">데이터 품질</a>
-      </nav>
+    <div class="sb-brand">
+      <a class="sb-logo" href="index.html" aria-label="PIPC Insight 홈">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="1" width="8" height="2" fill="currentColor"></rect><rect x="2" y="3" width="12" height="3" fill="currentColor"></rect><rect x="1" y="6" width="14" height="6" fill="currentColor"></rect><rect x="3" y="12" width="10" height="2" fill="currentColor"></rect><rect x="5" y="14" width="2" height="2" fill="currentColor"></rect><rect x="9" y="14" width="2" height="2" fill="currentColor"></rect><rect x="5" y="8" width="2" height="2" fill="#05080f"></rect><rect x="9" y="8" width="2" height="2" fill="#05080f"></rect></svg>
+      </a>
+      <a class="sb-brand-text" href="index.html"><span class="sb-name">PIPC INSIGHT</span><span class="sb-sub">Decision Atlas</span></a>
     </div>
+    <div class="sb-status"><span class="sb-led"></span><span>LINK · OK</span></div>
+    <nav class="sb-nav" aria-label="PIPC report navigation">
+      <a class="sb-item is-active" href="index.html"><span class="sb-ico"><svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="7" width="10" height="6"></rect><rect x="5" y="5" width="6" height="2"></rect><rect x="7" y="3" width="2" height="2"></rect></svg></span><span class="sb-label">홈</span></a>
+      <a class="sb-item" href="issues/index.html"><span class="sb-ico"><svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="2" width="10" height="12"></rect><rect x="5" y="5" width="6" height="1" fill="#05080f"></rect><rect x="5" y="8" width="6" height="1" fill="#05080f"></rect><rect x="5" y="11" width="4" height="1" fill="#05080f"></rect></svg></span><span class="sb-label">주요 쟁점</span></a>
+      <a class="sb-item" href="full_html/index.html"><span class="sb-ico"><svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="3" width="5" height="5"></rect><rect x="9" y="3" width="5" height="5"></rect><rect x="2" y="10" width="5" height="4"></rect><rect x="9" y="10" width="5" height="4"></rect></svg></span><span class="sb-label">유형별 분석</span></a>
+      <div class="sb-group">결정문 유형</div>
+      <a class="sb-item sb-subitem" href="full_html/enforcement.html"><span class="sb-ico"></span><span class="sb-label">법규 위반·제재</span></a>
+      <a class="sb-item sb-subitem" href="full_html/privacy_impact.html"><span class="sb-ico"></span><span class="sb-label">침해요인 평가</span></a>
+      <a class="sb-item sb-subitem" href="full_html/public_system.html"><span class="sb-ico"></span><span class="sb-label">공공시스템·실태점검</span></a>
+      <a class="sb-item sb-subitem" href="full_html/data_provision.html"><span class="sb-ico"></span><span class="sb-label">개인정보 제공 요청</span></a>
+      <a class="sb-item sb-subitem" href="full_html/interpretation_other.html"><span class="sb-ico"></span><span class="sb-label">민원·해석·기타</span></a>
+      <div class="sb-group">관리</div>
+      <a class="sb-item" href="full_html/data_quality.html"><span class="sb-ico"></span><span class="sb-label">데이터 품질</span></a>
+    </nav>
+    <div class="sb-footer"><span>v0.2 · reports</span></div>
   </header>
   <main>
     <section class="page-head">
@@ -29,7 +40,7 @@
     <div class="cards">
       <div class="card"><div class="label">결정문</div><div class="value">3,990</div><div class="hint">수집·파싱 완료</div></div>
       <div class="card"><div class="label">주요 쟁점</div><div class="value">11</div><div class="hint">개별 상세 페이지</div></div>
-      <div class="card"><div class="label">결정문 유형</div><div class="value">7</div><div class="hint">유형별 분석 보고서</div></div>
+      <div class="card"><div class="label">결정문 유형</div><div class="value">5</div><div class="hint">실무 분석 단위</div></div>
       <div class="card"><div class="label">유형 내부 토픽</div><div class="value">94</div><div class="hint">OpenRouter + UMAP + HDBSCAN</div></div>
     </div>
 
@@ -44,19 +55,26 @@
           <strong>유형별 분석 보고서</strong>
           <span>제재, 침해요인 평가, 제공 요청 등 결정문 유형별 분석과 유형 내부 토픽 지도</span>
         </a>
-        <a class="report-link" href="html/index.html">
-          <strong>요약 리포트</strong>
-          <span>모바일에서 빠르게 보는 핵심 지표와 기본 차트</span>
-        </a>
-        <a class="report-link" href="full_html/data_quality.html">
-          <strong>데이터 품질</strong>
-          <span>결측, 라벨 검수, 다음 정제 우선순위</span>
-        </a>
       </div>
     </section>
 
     <section>
-      <p class="note">클러스터는 별도 메뉴가 아니라 각 결정문 유형 내부의 토픽 지도로 배치했다. 유형 내부 토픽은 terminus와 같은 OpenRouter 임베딩, UMAP, HDBSCAN, LLM 라벨링 방식으로 생성했다.</p>
+      <h2>결정문 유형</h2>
+      <div class="link-grid">
+        <a class="report-link" href="full_html/enforcement.html"><strong>법규 위반·제재</strong><span>제재 조합, 금액구간, 조문쌍, 사건유형</span></a>
+        <a class="report-link" href="full_html/privacy_impact.html"><strong>침해요인 평가</strong><span>신청기관, 법령명, 권고율, 반복 쟁점</span></a>
+        <a class="report-link" href="full_html/public_system.html"><strong>공공시스템·실태점검</strong><span>개선권고, 기관·제목군, 공공부문 관리 흐름</span></a>
+        <a class="report-link" href="full_html/data_provision.html"><strong>개인정보 제공 요청</strong><span>허용·불허, 영상정보, 목적 외 제공 쟁점</span></a>
+        <a class="report-link" href="full_html/interpretation_other.html"><strong>민원·해석·기타</strong><span>해석성 안건, 정책성 안건, 조문 중심 쟁점</span></a>
+      </div>
+    </section>
+
+    <section>
+      <h2>운영 관점</h2>
+      <div class="link-grid">
+        <a class="report-link" href="full_html/data_quality.html"><strong>데이터 품질</strong><span>결측, 라벨 검수, 다음 정제 우선순위</span></a>
+      </div>
+      <p class="note">전체 구조와 데이터 품질은 결정문 유형이 아니라 코퍼스 운영·검수 관점으로 분리했다. 클러스터링은 각 결정문 유형 내부의 토픽 지도로 배치했다.</p>
     </section>
   </main>
 </body>

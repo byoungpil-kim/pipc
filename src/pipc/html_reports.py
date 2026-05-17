@@ -9,7 +9,7 @@ import pandas as pd
 from .insights import CATEGORY_LABELS, ensure_columns, filter_category, split_items
 
 
-PALETTE = ["#1e40af", "#059669", "#dc2626", "#7c3aed", "#0d9488", "#b45309", "#475569"]
+PALETTE = ["#22d3ee", "#38bdf8", "#a78bfa", "#34d399", "#f472b6", "#f59e0b", "#94a3b8"]
 
 
 def generate_html_reports(processed_path: Path, reports_dir: Path) -> list[Path]:
@@ -51,18 +51,17 @@ def render_index(df: pd.DataFrame, findings: list[dict[str, str]]) -> str:
         ]
     )
     links = [
-        ("overview.html", "전체 구조", "장르 구성, 시계열, 표본 검수 요약"),
         ("enforcement.html", "법규 위반·제재", "제재 강도, 금액, 조문, 사건유형"),
         ("privacy_impact.html", "침해요인 평가", "신청기관, 권고율, 연도 추세"),
         ("public_system.html", "공공시스템·실태점검", "실태점검·개선권고 흐름"),
         ("data_provision.html", "개인정보 제공 요청", "목적 외 제공·영상정보 제공 쟁점"),
         ("interpretation_other.html", "민원·해석·기타", "해석성 안건과 기타 정책 안건"),
-        ("data_quality.html", "데이터 품질", "결측, 문서 길이, 라벨 검수"),
     ]
     body = cards + "<section><h2>유형별 리포트</h2><div class='link-grid'>"
     for href, title, desc in links:
         body += f"<a class='report-link' href='{href}'><strong>{escape(title)}</strong><span>{escape(desc)}</span></a>"
     body += "</div></section>"
+    body += section("관리 관점", "<div class='link-grid'><a class='report-link' href='data_quality.html'><strong>데이터 품질</strong><span>결측, 문서 길이, 라벨 검수</span></a></div>")
     return page("PIPC 결정문 인사이트", "직원 공유용 분석 리포트 모음", body, "index")
 
 
@@ -269,31 +268,79 @@ def page(title: str, subtitle: str, body: str, active: str) -> str:
 
 
 def top_nav(active: str, root_prefix: str = "") -> str:
-    normalized = active
-    if active in {"index", "overview", "enforcement", "privacy", "public", "provision", "interpretation"}:
-        normalized = "types"
+    normalized = "home" if active == "index" else active
     nav = [
         ("home", f"{root_prefix}index.html", "홈"),
         ("issues", f"{root_prefix}issues/index.html", "주요 쟁점"),
         ("types", f"{root_prefix}full_html/index.html", "유형별 분석"),
-        ("summary", f"{root_prefix}html/index.html", "요약"),
+    ]
+    type_nav = [
+        ("enforcement", f"{root_prefix}full_html/enforcement.html", "법규 위반·제재"),
+        ("privacy", f"{root_prefix}full_html/privacy_impact.html", "침해요인 평가"),
+        ("public", f"{root_prefix}full_html/public_system.html", "공공시스템·실태점검"),
+        ("provision", f"{root_prefix}full_html/data_provision.html", "개인정보 제공 요청"),
+        ("interpretation", f"{root_prefix}full_html/interpretation_other.html", "민원·해석·기타"),
+    ]
+    utility_nav = [
         ("quality", f"{root_prefix}full_html/data_quality.html", "데이터 품질"),
     ]
     links = "".join(
-        f"<a class='{'active' if key == normalized else ''}' href='{href}'>{label}</a>"
+        f"<a class='sb-item {'is-active' if key == normalized else ''}' href='{href}'><span class='sb-ico'>{nav_icon(key)}</span><span class='sb-label'>{label}</span></a>"
         for key, href, label in nav
     )
-    return (
-        "<div class='site-header-inner'>"
-        f"<a class='brand' href='{root_prefix}index.html'>PIPC Insight</a>"
-        f"<nav>{links}</nav>"
-        "</div>"
+    type_links = "".join(
+        f"<a class='sb-item sb-subitem {'is-active' if key == normalized else ''}' href='{href}'><span class='sb-ico'>{nav_icon(key)}</span><span class='sb-label'>{label}</span></a>"
+        for key, href, label in type_nav
     )
+    utility_links = "".join(
+        f"<a class='sb-item {'is-active' if key == normalized else ''}' href='{href}'><span class='sb-ico'>{nav_icon(key)}</span><span class='sb-label'>{label}</span></a>"
+        for key, href, label in utility_nav
+    )
+    return (
+        "<div class='sb-brand'>"
+        f"<a class='sb-logo' href='{root_prefix}index.html' aria-label='PIPC Insight 홈'>{pixel_logo()}</a>"
+        f"<a class='sb-brand-text' href='{root_prefix}index.html'><span class='sb-name'>PIPC INSIGHT</span><span class='sb-sub'>Decision Atlas</span></a>"
+        "</div>"
+        "<div class='sb-status'><span class='sb-led'></span><span>LINK · OK</span></div>"
+        f"<nav class='sb-nav' aria-label='PIPC report navigation'>{links}<div class='sb-group'>결정문 유형</div>{type_links}<div class='sb-group'>관리</div>{utility_links}</nav>"
+        "<div class='sb-footer'><span>v0.2 · reports</span></div>"
+    )
+
+
+def pixel_logo() -> str:
+    return (
+        "<svg viewBox='0 0 16 16' shape-rendering='crispEdges' aria-hidden='true'>"
+        "<rect x='4' y='1' width='8' height='2' fill='currentColor'></rect>"
+        "<rect x='2' y='3' width='12' height='3' fill='currentColor'></rect>"
+        "<rect x='1' y='6' width='14' height='6' fill='currentColor'></rect>"
+        "<rect x='3' y='12' width='10' height='2' fill='currentColor'></rect>"
+        "<rect x='5' y='14' width='2' height='2' fill='currentColor'></rect>"
+        "<rect x='9' y='14' width='2' height='2' fill='currentColor'></rect>"
+        "<rect x='5' y='8' width='2' height='2' fill='#05080f'></rect>"
+        "<rect x='9' y='8' width='2' height='2' fill='#05080f'></rect>"
+        "</svg>"
+    )
+
+
+def nav_icon(key: str) -> str:
+    shapes = {
+        "home": "<rect x='3' y='7' width='10' height='6'></rect><rect x='5' y='5' width='6' height='2'></rect><rect x='7' y='3' width='2' height='2'></rect>",
+        "issues": "<rect x='3' y='2' width='10' height='12'></rect><rect x='5' y='5' width='6' height='1' fill='#05080f'></rect><rect x='5' y='8' width='6' height='1' fill='#05080f'></rect><rect x='5' y='11' width='4' height='1' fill='#05080f'></rect>",
+        "types": "<rect x='2' y='3' width='5' height='5'></rect><rect x='9' y='3' width='5' height='5'></rect><rect x='2' y='10' width='5' height='4'></rect><rect x='9' y='10' width='5' height='4'></rect>",
+        "enforcement": "<rect x='3' y='3' width='10' height='3'></rect><rect x='5' y='6' width='6' height='5'></rect><rect x='4' y='12' width='8' height='2'></rect>",
+        "privacy": "<rect x='4' y='2' width='8' height='5'></rect><rect x='3' y='7' width='10' height='7'></rect><rect x='7' y='9' width='2' height='3' fill='#05080f'></rect>",
+        "public": "<rect x='2' y='5' width='12' height='2'></rect><rect x='4' y='7' width='2' height='6'></rect><rect x='7' y='7' width='2' height='6'></rect><rect x='10' y='7' width='2' height='6'></rect><rect x='3' y='13' width='10' height='1'></rect>",
+        "provision": "<rect x='2' y='4' width='8' height='8'></rect><rect x='10' y='6' width='4' height='4'></rect><rect x='6' y='7' width='5' height='2' fill='#05080f'></rect>",
+        "interpretation": "<rect x='2' y='3' width='12' height='8'></rect><rect x='4' y='11' width='4' height='2'></rect><rect x='4' y='6' width='2' height='2' fill='#05080f'></rect><rect x='7' y='6' width='2' height='2' fill='#05080f'></rect><rect x='10' y='6' width='2' height='2' fill='#05080f'></rect>",
+        "quality": "<rect x='3' y='2' width='10' height='12'></rect><rect x='5' y='4' width='6' height='2' fill='#05080f'></rect><rect x='5' y='8' width='2' height='2' fill='#05080f'></rect><rect x='9' y='8' width='2' height='2' fill='#05080f'></rect>",
+    }
+    return f"<svg viewBox='0 0 16 16' shape-rendering='crispEdges' aria-hidden='true'>{shapes.get(key, shapes['types'])}</svg>"
 
 
 def html_document(title: str, subtitle: str, body: str, active: str, root_prefix: str = "", compact: bool = False) -> str:
-    head = "" if compact else (
-        "<section class='page-head'>"
+    head_class = "compact-head" if compact else "page-head"
+    head = (
+        f"<section class='{head_class}'>"
         "<p class='eyebrow'>PIPC Decision Insights</p>"
         f"<h1>{escape(title)}</h1>"
         f"<p class='subtitle'>{escape(subtitle)}</p>"
@@ -323,91 +370,119 @@ def write_css(path: Path) -> None:
         dedent(
             """\
             :root {
-              color-scheme: light;
-              --bg: #fafaf7;
-              --panel: #ffffff;
-              --text: #1a1a1a;
-              --muted: #5c5c5c;
-              --faint: #8a8a8a;
-              --line: #e5e5e0;
-              --accent: #1a4d8f;
-              --accent-2: #0d9488;
-              --danger: #dc2626;
+              color-scheme: dark;
+              --bg: #03060d;
+              --panel: #05080f;
+              --panel-2: #0a0f1f;
+              --text: #e2e8f0;
+              --muted: #94a3b8;
+              --faint: #64748b;
+              --line: #1e293b;
+              --accent: #22d3ee;
+              --accent-2: #38bdf8;
+              --danger: #fb7185;
+              --green: #4ade80;
               --font-sans: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI", "Noto Sans KR", "Helvetica Neue", Arial, sans-serif;
-              --font-serif: "Iowan Old Style", "Apple Garamond", "Source Serif Pro", "Noto Serif KR", Georgia, "Times New Roman", serif;
               --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
             }
             * { box-sizing: border-box; }
+            html { background: var(--bg); }
             body {
               margin: 0;
-              background: var(--bg);
+              min-height: 100vh;
+              background:
+                radial-gradient(circle at 82% 8%, rgba(34, 211, 238, .09), transparent 28rem),
+                linear-gradient(180deg, #03060d 0%, #05080f 100%);
               color: var(--text);
               font-family: var(--font-sans);
-              font-size: 16px;
-              line-height: 1.65;
+              font-size: 15px;
+              line-height: 1.6;
               -webkit-font-smoothing: antialiased;
+              display: grid;
+              grid-template-columns: 188px minmax(0, 1fr);
             }
             a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
             a:hover { text-decoration-thickness: 2px; }
-            .site-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: rgba(250,250,247,.96); backdrop-filter: blur(8px); }
-            .site-header-inner {
-              width: min(1180px, 100%);
-              margin: 0 auto;
-              padding: 10px clamp(14px, 3vw, 24px);
+            .site-header {
+              position: sticky;
+              top: 0;
+              z-index: 20;
+              min-height: 100vh;
+              background: #05080f;
+              border-right: 1px solid var(--line);
+              padding: 18px 12px 14px;
               display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 16px;
+              flex-direction: column;
+              gap: 14px;
+              font-family: var(--font-mono);
+              color: var(--muted);
             }
-            .brand { color: var(--text); font-weight: 800; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; }
-            nav {
-              display: flex; gap: 6px; overflow-x: auto;
-            }
-            nav a { white-space: nowrap; color: var(--muted); text-decoration: none; padding: 7px 9px; border-radius: 6px; font-size: 14px; }
-            nav a.active { background: #eef2ff; color: #1e40af; font-weight: 700; }
-            main { width: min(1180px, 100%); margin: 0 auto; padding: 18px clamp(12px, 3vw, 28px) 56px; }
+            .sb-brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 12px; border-bottom: 1px solid var(--line); }
+            .sb-logo { width: 28px; height: 28px; color: var(--accent); text-decoration: none; flex: 0 0 auto; }
+            .sb-logo svg, .sb-ico svg { width: 100%; height: 100%; display: block; }
+            .sb-brand-text { display: flex; flex-direction: column; color: inherit; text-decoration: none; min-width: 0; }
+            .sb-name { color: #f1f5f9; font-weight: 800; letter-spacing: .1em; font-size: 12px; }
+            .sb-sub { color: var(--faint); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; }
+            .sb-status { display: flex; align-items: center; gap: 8px; padding: 2px 8px; font-size: 10px; color: var(--green); letter-spacing: .12em; }
+            .sb-led { width: 7px; height: 7px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); animation: sb-pulse 1.4s ease-in-out infinite; }
+            @keyframes sb-pulse { 50% { opacity: .45; } }
+            .sb-nav { display: flex; flex-direction: column; gap: 2px; overflow: visible; }
+            .sb-group { margin: 12px 8px 4px; color: #475569; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+            .sb-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; color: var(--muted); text-decoration: none; border-radius: 3px; font-size: 12px; letter-spacing: .03em; transition: background 100ms ease, color 100ms ease; }
+            .sb-item:hover { background: #0c1426; color: var(--text); text-decoration: none; }
+            .sb-item.is-active { background: #0e1a32; color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); }
+            .sb-subitem { padding-left: 16px; font-size: 11.5px; }
+            .sb-ico { width: 16px; height: 16px; color: currentColor; flex: 0 0 16px; }
+            .sb-label { min-width: 0; }
+            .sb-footer { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); color: #475569; font-size: 9.5px; letter-spacing: .12em; }
+            main { width: min(1240px, 100%); margin: 0 auto; padding: 22px clamp(14px, 3vw, 36px) 64px; }
             .page-head {
-              background: transparent;
-              border: 0;
-              border-bottom: 2px solid var(--text);
-              border-radius: 0;
-              padding: 34px 0 22px;
-              margin: 0 0 22px;
+              background: linear-gradient(180deg, rgba(14, 26, 50, .72), rgba(5, 8, 15, .88));
+              border: 1px solid var(--line);
+              border-radius: 6px;
+              padding: 28px;
+              margin: 0 0 18px;
+              position: relative;
+              overflow: hidden;
             }
-            .page-head h1 { font-family: var(--font-serif); margin: 0 0 8px; font-size: clamp(34px, 5vw, 58px); line-height: 1.08; letter-spacing: 0; }
-            .eyebrow { margin: 0 0 10px; color: var(--faint); font-family: var(--font-mono); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
-            .subtitle { margin: 0; color: var(--muted); max-width: 780px; font-size: 17px; }
-            section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin: 14px 0; overflow: hidden; }
+            .page-head::after { content: ""; position: absolute; inset: auto 0 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .7; }
+            .page-head h1 { margin: 0 0 8px; font-size: clamp(30px, 4.8vw, 52px); line-height: 1.08; letter-spacing: 0; font-weight: 850; }
+            .compact-head { border-bottom: 1px solid var(--line); padding: 6px 0 16px; margin: 0 0 16px; }
+            .compact-head h1 { margin: 0 0 6px; font-size: clamp(24px, 4vw, 38px); line-height: 1.12; letter-spacing: 0; font-weight: 850; }
+            .eyebrow { margin: 0 0 10px; color: var(--accent); font-family: var(--font-mono); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; }
+            .subtitle { margin: 0; color: var(--muted); max-width: 820px; font-size: 16px; }
+            section { background: rgba(5, 8, 15, .9); border: 1px solid var(--line); border-radius: 6px; padding: 18px; margin: 14px 0; overflow: hidden; }
             section section { margin: 12px 0; }
-            h2 { margin: 0 0 14px; font-family: var(--font-serif); font-size: clamp(22px, 3vw, 31px); line-height: 1.2; letter-spacing: 0; }
+            h2 { margin: 0 0 14px; font-size: clamp(20px, 2.6vw, 28px); line-height: 1.2; letter-spacing: 0; }
             h3 { margin: 16px 0 8px; font-size: 18px; }
             .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 14px 0; }
-            .card { background: white; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; padding: 16px; min-width: 0; }
+            .card { background: #05080f; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 6px; padding: 16px; min-width: 0; }
             .card .label { color: var(--muted); font-size: 13px; }
-            .card .value { font-family: var(--font-serif); font-size: clamp(24px, 4vw, 34px); font-weight: 800; margin: 4px 0; line-height: 1.12; }
+            .card .value { font-family: var(--font-mono); color: #f8fafc; font-size: clamp(24px, 4vw, 34px); font-weight: 800; margin: 4px 0; line-height: 1.12; }
             .card .hint { color: var(--muted); font-size: 13px; }
             .chart-wrap { width: 100%; overflow-x: auto; }
             svg.chart { width: 100%; height: auto; min-width: 520px; }
-            .axis, .tick { fill: #667085; font-size: 12px; }
-            .bar-label { fill: #172033; font-size: 12px; }
-            .note { border-left: 4px solid var(--accent); background: #f5f7fb; padding: 12px 14px; border-radius: 4px; color: #243b63; }
+            .axis, .tick { fill: #94a3b8; font-size: 12px; }
+            .bar-label { fill: #e2e8f0; font-size: 12px; }
+            .note { border-left: 4px solid var(--accent); background: #07111f; padding: 12px 14px; border-radius: 4px; color: #cbd5e1; }
             .insight-list { margin: 0; padding-left: 20px; }
             .insight-list li { margin: 8px 0; }
             table { width: 100%; border-collapse: collapse; font-size: 14px; }
             th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 8px; vertical-align: top; }
-            th { background: #f1f4f9; font-weight: 700; }
+            th { background: #0c1426; color: #f8fafc; font-weight: 700; }
             .table-wrap { overflow-x: auto; }
             .link-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .report-link { display: block; background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; padding: 16px; text-decoration: none; color: var(--text); transition: transform 120ms ease, box-shadow 120ms ease; }
-            .report-link:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+            .report-link { display: block; background: #05080f; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 6px; padding: 16px; text-decoration: none; color: var(--text); transition: transform 120ms ease, border-color 120ms ease; }
+            .report-link:hover { transform: translateY(-2px); border-color: var(--accent); text-decoration: none; }
             .report-link strong { display: block; margin-bottom: 4px; }
             .report-link span { color: var(--muted); font-size: 14px; }
             .issue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-            .issue-card { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--accent-2); border-radius: 8px; padding: 16px; text-decoration: none; color: inherit; }
+            .issue-card { background: #05080f; border: 1px solid var(--line); border-top: 3px solid var(--accent-2); border-radius: 6px; padding: 16px; text-decoration: none; color: inherit; }
+            .issue-card:hover { border-color: var(--accent); text-decoration: none; }
             .issue-card strong { display: block; margin-bottom: 8px; font-size: 17px; }
             .issue-card span { display: block; color: var(--muted); font-size: 14px; }
             .decision-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-            .decision-card { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 14px; }
+            .decision-card { border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 14px; }
             .decision-card .meta { color: var(--faint); font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px; }
             .decision-card .title { font-weight: 800; margin-bottom: 8px; }
             .decision-card .amount { color: var(--danger); font-weight: 800; }
@@ -415,11 +490,18 @@ def write_css(path: Path) -> None:
             .topic-map { width: 100%; min-height: 360px; background: #03060d; border-radius: 8px; border: 1px solid #1e293b; }
             .topic-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
             .cluster-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-            .cluster-list li { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 10px; background: #fff; }
+            .cluster-list li { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 10px; background: #05080f; }
             .cluster-list strong { display: block; }
             .cluster-list span { color: var(--muted); font-size: 13px; }
-            @media (max-width: 760px) {
-              .site-header-inner { align-items: flex-start; flex-direction: column; gap: 8px; }
+            @media (max-width: 820px) {
+              body { display: block; }
+              .site-header { position: static; min-height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; }
+              .sb-brand { border: 0; padding: 0; }
+              .sb-status, .sb-footer { display: none; }
+              .sb-nav { flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 2px; }
+              .sb-group { display: none; }
+              .sb-item, .sb-subitem { white-space: nowrap; padding: 7px 10px; }
+              .sb-item.is-active { box-shadow: inset 0 -2px 0 var(--accent); }
               .cards, .link-grid, .split, .topic-wrap { grid-template-columns: 1fr; }
               section { padding: 14px; }
               svg.chart { min-width: 440px; }
