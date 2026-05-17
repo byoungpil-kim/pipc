@@ -15,6 +15,8 @@ The repository currently includes 3,990 collected decisions, parsed datasets, an
 
 Open the HTML files locally for the rendered report experience, or inspect them directly in GitHub as versioned artifacts.
 
+For the simplest GitHub Pages setup, use `Settings` -> `Pages` -> `Deploy from a branch`, then select `main` and `/root`.
+
 ## Setup
 
 ```bash
