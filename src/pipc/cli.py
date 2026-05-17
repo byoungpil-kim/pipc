@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .api import LawApiClient
 from .collect import collect_decisions, collect_list_pages
-from .config import get_settings
+from .config import get_settings, require_oc
 from .labels import derive_labels
 from .parse import DECISION_FIELDS, LIST_FIELDS, parse_decision_file, parse_list_file
 
@@ -66,21 +66,19 @@ def build_parser() -> argparse.ArgumentParser:
     full_reports = sub.add_parser("full-reports", help="Generate detailed section-by-section full HTML reports.")
     full_reports.set_defaults(func=cmd_full_reports)
 
-    cluster = sub.add_parser("cluster", help="Cluster decisions and extract cluster issue candidates.")
-    cluster.add_argument("--n-clusters", type=int, default=18)
-    cluster.set_defaults(func=cmd_cluster)
-
-    cluster_reports = sub.add_parser("cluster-reports", help="Generate cluster-by-cluster full HTML reports.")
-    cluster_reports.set_defaults(func=cmd_cluster_reports)
-
     global_issue_report = sub.add_parser("global-issue-report", help="Generate the separate global issue HTML report.")
     global_issue_report.set_defaults(func=cmd_global_issue_report)
+
+    type_topic_maps = sub.add_parser("type-topic-maps", help="Build OpenRouter/UMAP/HDBSCAN topic maps inside each decision type.")
+    type_topic_maps.add_argument("--category", action="append", help="Limit to one document_category. Can be repeated.")
+    type_topic_maps.set_defaults(func=cmd_type_topic_maps)
 
     return parser
 
 
 def cmd_smoke(args: argparse.Namespace) -> int:
     settings = get_settings()
+    require_oc(settings)
     client = LawApiClient(settings)
     list_path = settings.raw_dir / "list_pages" / "page_1.xml"
     client.save_list_page(1, list_path, force=args.force)
@@ -99,6 +97,7 @@ def cmd_smoke(args: argparse.Namespace) -> int:
 
 def cmd_collect_list(args: argparse.Namespace) -> int:
     settings = get_settings()
+    require_oc(settings)
     client = LawApiClient(settings)
     paths = collect_list_pages(client, settings, max_pages=args.max_pages, force=args.force)
     print(f"Collected {len(paths)} list page XML files.")
@@ -107,6 +106,7 @@ def cmd_collect_list(args: argparse.Namespace) -> int:
 
 def cmd_collect_decisions(args: argparse.Namespace) -> int:
     settings = get_settings()
+    require_oc(settings)
     ids = read_decision_ids(settings.raw_dir / "list_pages")
     client = LawApiClient(settings)
     successes, failures = collect_decisions(client, settings, ids, force=args.force)
@@ -170,36 +170,26 @@ def cmd_full_reports(_args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_cluster(args: argparse.Namespace) -> int:
-    from .clustering import run_clustering
-
-    settings = get_settings()
-    outputs = run_clustering(
-        settings.processed_dir / "decisions.csv",
-        settings.reports_dir,
-        n_clusters=args.n_clusters,
-    )
-    print("Wrote cluster outputs:")
-    for path in outputs:
-        print(path)
-    return 0
-
-
-def cmd_cluster_reports(_args: argparse.Namespace) -> int:
-    from .cluster_reports import generate_cluster_reports
-
-    settings = get_settings()
-    paths = generate_cluster_reports(settings.processed_dir / "decisions.csv", settings.reports_dir)
-    print(f"Wrote {len(paths)} cluster full HTML reports under {settings.reports_dir / 'cluster_full_html'}")
-    return 0
-
-
 def cmd_global_issue_report(_args: argparse.Namespace) -> int:
     from .global_issue_report import generate_global_issue_report
 
     settings = get_settings()
     path = generate_global_issue_report(settings.processed_dir / "decisions.csv", settings.reports_dir)
     print(f"Wrote {path}")
+    return 0
+
+
+def cmd_type_topic_maps(args: argparse.Namespace) -> int:
+    from .type_topic_map import generate_type_topic_maps
+
+    settings = get_settings()
+    clusters_path, assignments_path = generate_type_topic_maps(
+        settings.processed_dir / "decisions.csv",
+        settings.reports_dir,
+        categories=args.category,
+    )
+    print(f"Wrote {clusters_path}")
+    print(f"Wrote {assignments_path}")
     return 0
 
 

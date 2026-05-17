@@ -7,9 +7,8 @@ This project collects, parses, and analyzes Personal Information Protection Comm
 The repository currently includes 3,990 collected decisions, parsed datasets, analysis tables, and staff-facing HTML reports.
 
 - GitHub Pages site: https://byoungpil-kim.github.io/pipc/
-- Global issue report: [`reports/global_issues.html`](reports/global_issues.html)
-- Cluster full report index: [`reports/cluster_full_html/index.html`](reports/cluster_full_html/index.html)
-- Section full report index: [`reports/full_html/index.html`](reports/full_html/index.html)
+- Major issue report: [`reports/issues/index.html`](reports/issues/index.html)
+- Decision type report index: [`reports/full_html/index.html`](reports/full_html/index.html)
 - Mobile-friendly summary report index: [`reports/html/index.html`](reports/html/index.html)
 - Handoff and next work log: [`NEXT_SESSION.md`](NEXT_SESSION.md)
 
@@ -46,8 +45,7 @@ pipc eda
 pipc insights
 pipc html-reports
 pipc full-reports
-pipc cluster --n-clusters 18
-pipc cluster-reports
+pipc type-topic-maps
 pipc global-issue-report
 ```
 

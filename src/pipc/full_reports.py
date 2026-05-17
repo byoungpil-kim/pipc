@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from itertools import combinations
+import json
 from pathlib import Path
 import re
 
@@ -55,15 +56,16 @@ def generate_full_reports(processed_path: Path, reports_dir: Path) -> list[Path]
     tables_dir = reports_dir / "tables" / "full"
     tables_dir.mkdir(parents=True, exist_ok=True)
     write_full_tables(df, tables_dir)
+    topic_maps = load_type_topic_maps(reports_dir)
 
     pages = [
         ("index.html", render_full_index(df)),
         ("overview.html", render_full_overview(df)),
-        ("enforcement.html", render_full_enforcement(df)),
-        ("privacy_impact.html", render_full_privacy_impact(df)),
-        ("public_system.html", render_full_public_system(df)),
-        ("data_provision.html", render_full_data_provision(df)),
-        ("interpretation_other.html", render_full_interpretation_other(df)),
+        ("enforcement.html", render_full_enforcement(df, topic_maps)),
+        ("privacy_impact.html", render_full_privacy_impact(df, topic_maps)),
+        ("public_system.html", render_full_public_system(df, topic_maps)),
+        ("data_provision.html", render_full_data_provision(df, topic_maps)),
+        ("interpretation_other.html", render_full_interpretation_other(df, topic_maps)),
         ("data_quality.html", render_full_data_quality(df)),
     ]
 
@@ -96,13 +98,13 @@ def render_full_index(df: pd.DataFrame) -> str:
     body = metric_cards(
         [
             ("전체 결정문", f"{len(df):,}", "수집·파싱 완료"),
-            ("상세 섹션", "7", "장르별 보고서"),
+            ("결정문 유형", "7", "유형별 보고서"),
             ("제재 분석", f"{len(filter_category(df, 'enforcement')):,}", "전용 트랙"),
             ("침해요인 평가", f"{len(filter_category(df, 'privacy_impact_review')):,}", "전용 트랙"),
         ]
     )
     body += section(
-        "Full Report 구성",
+        "유형별 분석 보고서 구성",
         table(
             pd.DataFrame(
                 [
@@ -114,12 +116,12 @@ def render_full_index(df: pd.DataFrame) -> str:
                     ["민원·해석·기타", "해석성 안건, 정책성 안건, 조문 중심 쟁점"],
                     ["데이터 품질", "결측, 중복, 라벨 검수, 다음 개선 대상"],
                 ],
-                columns=["섹션", "분석 관점"],
+                columns=["결정문 유형", "분석 관점"],
             )
         ),
     )
     body += note("이 보고서는 규칙 기반 1차 분석이다. 표본 검수로 주요 오탐을 줄였지만, 직원 공유 전 고액 제재·기타 장르를 중심으로 추가 검수가 필요하다.")
-    return page("Full Insight Report", "섹션별 상세 분석 보고서", body, "index")
+    return page("유형별 분석 보고서", "결정문 유형별 상세 분석", body, "types")
 
 
 def render_full_overview(df: pd.DataFrame) -> str:
@@ -142,7 +144,7 @@ def render_full_overview(df: pd.DataFrame) -> str:
     return page("전체 구조 Full Report", "코퍼스 지도와 시기별 변화", body, "overview")
 
 
-def render_full_enforcement(df: pd.DataFrame) -> str:
+def render_full_enforcement(df: pd.DataFrame, topic_maps: dict[str, dict]) -> str:
     subset = filter_category(df, "enforcement")
     money = subset["monetary_amount"].dropna()
     package_counts = enforcement_package_counts(subset)
@@ -162,12 +164,13 @@ def render_full_enforcement(df: pd.DataFrame) -> str:
     body += section("조문 동시 출현 쌍", horizontal_bar(pairs["article_pair"], pairs["count"], "건수"))
     body += section("사건 유형", horizontal_bar(*exploded(subset, "case_type", 15), title="건수"))
     body += section("Factor", horizontal_bar(*exploded(subset, "factors", 15), title="건수"))
+    body += topic_map_section("enforcement", topic_maps)
     body += section("상위 금액 사건", table(top_money(subset, 20)))
     body += note("제재 금액은 주문문 우선 정규식 추출이다. 다수 피심인 사건, 병합 의결, 표 이미지 내 금액은 별도 검수해야 한다.")
     return page("법규 위반·제재 Full Report", "제재 조합, 금액, 조문, 사건유형", body, "enforcement")
 
 
-def render_full_privacy_impact(df: pd.DataFrame) -> str:
+def render_full_privacy_impact(df: pd.DataFrame, topic_maps: dict[str, dict]) -> str:
     subset = filter_category(df, "privacy_impact_review")
     rec = recommendation_flags(subset)
     laws = law_name_counts(subset)
@@ -186,11 +189,12 @@ def render_full_privacy_impact(df: pd.DataFrame) -> str:
     body += section("신청기관 상위", horizontal_bar(*top_counts_safe(subset, "applicant", 15), title="건수"))
     body += section("반복 검토 법령명", table(laws.head(20)))
     body += section("반복 쟁점 키워드", horizontal_bar(issues["issue"].head(15), issues["count"].head(15), "건수"))
+    body += topic_map_section("privacy_impact_review", topic_maps)
     body += note("침해요인 평가는 원문 별지에 실질 쟁점이 많이 들어 있다. 다음 단계는 별지 텍스트에서 개인정보 항목·보유기간·위탁·연계 쟁점을 구조화하는 것이다.")
     return page("침해요인 평가 Full Report", "신청기관, 권고율, 반복 쟁점", body, "privacy")
 
 
-def render_full_public_system(df: pd.DataFrame) -> str:
+def render_full_public_system(df: pd.DataFrame, topic_maps: dict[str, dict]) -> str:
     subset = filter_category(df, "public_system_inspection")
     families = title_family_counts(subset)
     issues = issue_term_counts(subset)
@@ -206,11 +210,12 @@ def render_full_public_system(df: pd.DataFrame) -> str:
     body += section("연도별 건수", vertical_bar(*year_counts(subset), title="건수"))
     body += section("제목군", horizontal_bar(families["title_family"].head(12), families["count"].head(12), "건수"))
     body += section("반복 쟁점 키워드", horizontal_bar(issues["issue"].head(12), issues["count"].head(12), "건수"))
+    body += topic_map_section("public_system_inspection", topic_maps)
     body += section("대표 표본", table(subset[["decision_id", "decision_date", "title", "order_text"]].head(15)))
     return page("공공시스템·실태점검 Full Report", "공공부문 관리·점검 트랙", body, "public")
 
 
-def render_full_data_provision(df: pd.DataFrame) -> str:
+def render_full_data_provision(df: pd.DataFrame, topic_maps: dict[str, dict]) -> str:
     subset = filter_category(df, "data_provision_request")
     outcomes = provision_outcomes(subset)
     issues = issue_term_counts(subset)
@@ -228,11 +233,12 @@ def render_full_data_provision(df: pd.DataFrame) -> str:
     body += section("연도별 건수", vertical_bar(*year_counts(subset), title="건수"))
     body += section("쟁점 키워드", horizontal_bar(issues["issue"].head(12), issues["count"].head(12), "건수"))
     body += section("요청기관 상위", horizontal_bar(*top_counts_safe(subset, "applicant", 15), title="건수"))
+    body += topic_map_section("data_provision_request", topic_maps)
     body += note("제공 요청은 제재 사건이 아니라 법정 업무수행, 목적 외 이용·제공, 영상정보 제공 가능성 판단이 핵심이다.")
     return page("개인정보 제공 요청 Full Report", "허용/불허와 제공 근거 쟁점", body, "provision")
 
 
-def render_full_interpretation_other(df: pd.DataFrame) -> str:
+def render_full_interpretation_other(df: pd.DataFrame, topic_maps: dict[str, dict]) -> str:
     subset = pd.concat(
         [
             filter_category(df, "complaint_or_interpretation"),
@@ -255,6 +261,7 @@ def render_full_interpretation_other(df: pd.DataFrame) -> str:
     body += section("주요 조문", horizontal_bar(*exploded(subset, "violated_articles", 15), title="건수"))
     body += section("쟁점 키워드", horizontal_bar(issues["issue"].head(12), issues["count"].head(12), "건수"))
     body += section("반복 제목", table(top_values(subset, "title", 20)))
+    body += topic_map_section("other", topic_maps)
     body += note("기타 장르는 라벨 정제 여지가 크다. 정책 보고, 개선의견, 해석성 안건을 세분화하면 지식베이스 가치가 커진다.")
     return page("민원·해석·기타 Full Report", "해석성·정책성 안건 분석", body, "interpretation")
 
@@ -523,3 +530,83 @@ def review_priority(df: pd.DataFrame) -> pd.DataFrame:
         },
     ]
     return pd.DataFrame(rows)
+
+
+def load_type_topic_maps(reports_dir: Path) -> dict[str, dict]:
+    out = {}
+    topic_dir = reports_dir / "tables" / "type_topic_maps"
+    if not topic_dir.exists():
+        return out
+    for path in topic_dir.glob("*.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        out[data.get("document_category", path.stem)] = data
+    return out
+
+
+def topic_map_section(category: str, topic_maps: dict[str, dict]) -> str:
+    data = topic_maps.get(category)
+    if not data:
+        return note("이 유형의 OpenRouter 기반 내부 토픽 지도는 아직 생성되지 않았다. `pipc type-topic-maps` 실행 후 리포트를 다시 생성하면 반영된다.")
+    clusters = data.get("clusters", [])
+    pages = data.get("pages", [])
+    cluster_table = pd.DataFrame(
+        [
+            {
+                "토픽": item.get("label", ""),
+                "설명": item.get("subtitle", ""),
+                "건수": item.get("size", 0),
+                "주요 사건유형": item.get("top_case_types", ""),
+            }
+            for item in clusters
+        ]
+    )
+    body = (
+        "<div class='topic-wrap'>"
+        + topic_svg(data)
+        + "<div>"
+        + table(cluster_table)
+        + "</div>"
+        + "</div>"
+        + f"<p class='note'>방식: {data.get('method', '')}. 점 하나가 한 결정문이고, 색상은 유형 내부 토픽을 뜻한다.</p>"
+    )
+    return section("유형 내부 토픽 지도", body)
+
+
+def topic_svg(data: dict) -> str:
+    pages = data.get("pages", [])
+    clusters = data.get("clusters", [])
+    width = 900
+    height = 520
+    parts = [
+        "<rect x='0' y='0' width='900' height='520' fill='#03060d'></rect>",
+        "<g opacity='.20'>"
+    ]
+    for x in range(0, width, 50):
+        parts.append(f"<line x1='{x}' y1='0' x2='{x}' y2='{height}' stroke='#1e293b'></line>")
+    for y in range(0, height, 50):
+        parts.append(f"<line x1='0' y1='{y}' x2='{width}' y2='{y}' stroke='#1e293b'></line>")
+    parts.append("</g>")
+    for page in pages:
+        x = float(page.get("x", 50)) / 100 * (width - 80) + 40
+        y = (100 - float(page.get("y", 50))) / 100 * (height - 80) + 40
+        color = str(page.get("color", "#8a8a8a"))
+        title = str(page.get("title", ""))
+        parts.append(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4.2' fill='{color}' opacity='.82'><title>{escape_svg(title)}</title></circle>")
+    for cluster in clusters:
+        x = float(cluster.get("x", 50)) / 100 * (width - 80) + 40
+        y = (100 - float(cluster.get("y", 50))) / 100 * (height - 80) + 40
+        label = escape_svg(str(cluster.get("label", ""))[:16])
+        parts.append(f"<text x='{x:.1f}' y='{y:.1f}' fill='#f8fafc' font-size='16' font-weight='700'>{label}</text>")
+    return f"<div class='chart-wrap'><svg class='topic-map' viewBox='0 0 {width} {height}' role='img'>{''.join(parts)}</svg></div>"
+
+
+def escape_svg(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )

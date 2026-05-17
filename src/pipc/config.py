@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 @dataclass(frozen=True)
 class Settings:
-    oc: str
+    oc: str = ""
     root: Path = PROJECT_ROOT
     raw_dir: Path = PROJECT_ROOT / "data" / "raw"
     processed_dir: Path = PROJECT_ROOT / "data" / "processed"
@@ -34,7 +34,11 @@ def load_env(path: Path | None = None) -> dict[str, str]:
 
 def get_settings(env_path: Path | None = None) -> Settings:
     values = load_env(env_path)
-    oc = values.get("OC")
-    if not oc:
-        raise RuntimeError("Missing OC in .env. Expected a line like OC=...")
+    oc = values.get("OC", "")
     return Settings(oc=oc)
+
+
+def require_oc(settings: Settings) -> str:
+    if not settings.oc:
+        raise RuntimeError("Missing OC in .env. Expected a line like OC=...")
+    return settings.oc

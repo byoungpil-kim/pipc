@@ -7,68 +7,56 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div>
-      <p class="eyebrow">PIPC Decision Insights</p>
-      <h1>PIPC 결정문 인사이트</h1>
-      <p class="subtitle">개인정보보호위원회 결정문 3,990건을 분석한 직원 공유용 리포트 포털</p>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="index.html">PIPC Insight</a>
+      <nav>
+        <a class="active" href="index.html">홈</a>
+        <a href="issues/index.html">주요 쟁점</a>
+        <a href="full_html/index.html">유형별 분석</a>
+        <a href="html/index.html">요약</a>
+        <a href="full_html/data_quality.html">데이터 품질</a>
+      </nav>
     </div>
   </header>
-  <nav>
-    <a class="active" href="index.html">홈</a>
-    <a href="global_issues.html">글로벌 쟁점</a>
-    <a href="cluster_full_html/index.html">클러스터</a>
-    <a href="full_html/index.html">섹션 Full</a>
-    <a href="html/index.html">요약</a>
-  </nav>
   <main>
+    <section class="page-head">
+      <p class="eyebrow">PIPC Decision Insights</p>
+      <h1>개인정보보호위원회 결정문 인사이트</h1>
+      <p class="subtitle">3,990건 결정문을 주요 쟁점과 결정문 유형 중심으로 읽기 위한 정적 분석 포털</p>
+    </section>
+
     <div class="cards">
-      <div class="card">
-        <div class="label">결정문</div>
-        <div class="value">3,990</div>
-        <div class="hint">수집·파싱 완료</div>
-      </div>
-      <div class="card">
-        <div class="label">글로벌 쟁점</div>
-        <div class="value">11</div>
-        <div class="hint">외부 논쟁 기반</div>
-      </div>
-      <div class="card">
-        <div class="label">클러스터</div>
-        <div class="value">18</div>
-        <div class="hint">비지도 묶음</div>
-      </div>
-      <div class="card">
-        <div class="label">섹션 리포트</div>
-        <div class="value">7</div>
-        <div class="hint">장르별 분석</div>
-      </div>
+      <div class="card"><div class="label">결정문</div><div class="value">3,990</div><div class="hint">수집·파싱 완료</div></div>
+      <div class="card"><div class="label">주요 쟁점</div><div class="value">11</div><div class="hint">개별 상세 페이지</div></div>
+      <div class="card"><div class="label">결정문 유형</div><div class="value">7</div><div class="hint">유형별 분석 보고서</div></div>
+      <div class="card"><div class="label">유형 내부 토픽</div><div class="value">94</div><div class="hint">OpenRouter + UMAP + HDBSCAN</div></div>
     </div>
 
     <section>
-      <h2>주요 리포트</h2>
+      <h2>주요 진입점</h2>
       <div class="link-grid">
-        <a class="report-link" href="global_issues.html">
-          <strong>글로벌 쟁점 리포트</strong>
-          <span>11개 쟁점별 법적 분석, 정량, 정성, 대표 결정문 예시</span>
-        </a>
-        <a class="report-link" href="cluster_full_html/index.html">
-          <strong>클러스터 Full Report</strong>
-          <span>18개 결정문 클러스터별 쟁점 후보와 대표 사례</span>
+        <a class="report-link" href="issues/index.html">
+          <strong>주요 쟁점</strong>
+          <span>쟁점별 개별 페이지, 정량 지도, 법적 신호, 대표 결정문 시각화</span>
         </a>
         <a class="report-link" href="full_html/index.html">
-          <strong>섹션별 Full Report</strong>
-          <span>제재, 침해요인 평가, 공공점검, 제공요청 등 장르별 상세 분석</span>
+          <strong>유형별 분석 보고서</strong>
+          <span>제재, 침해요인 평가, 제공 요청 등 결정문 유형별 분석과 유형 내부 토픽 지도</span>
         </a>
         <a class="report-link" href="html/index.html">
           <strong>요약 리포트</strong>
-          <span>모바일 친화적 요약 차트와 핵심 지표</span>
+          <span>모바일에서 빠르게 보는 핵심 지표와 기본 차트</span>
+        </a>
+        <a class="report-link" href="full_html/data_quality.html">
+          <strong>데이터 품질</strong>
+          <span>결측, 라벨 검수, 다음 정제 우선순위</span>
         </a>
       </div>
     </section>
 
     <section>
-      <p class="note">이 사이트는 GitHub Pages로 배포되는 정적 리포트입니다. 표와 차트는 브라우저에서 바로 볼 수 있고, 원본 CSV·HTML 산출물은 GitHub 저장소에 함께 보관됩니다.</p>
+      <p class="note">클러스터는 별도 메뉴가 아니라 각 결정문 유형 내부의 토픽 지도로 배치했다. 유형 내부 토픽은 terminus와 같은 OpenRouter 임베딩, UMAP, HDBSCAN, LLM 라벨링 방식으로 생성했다.</p>
     </section>
   </main>
 </body>

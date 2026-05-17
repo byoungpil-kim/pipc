@@ -9,7 +9,7 @@ import pandas as pd
 from .insights import CATEGORY_LABELS, ensure_columns, filter_category, split_items
 
 
-PALETTE = ["#2563eb", "#059669", "#dc2626", "#7c3aed", "#d97706", "#0891b2", "#4b5563"]
+PALETTE = ["#1e40af", "#059669", "#dc2626", "#7c3aed", "#0d9488", "#b45309", "#475569"]
 
 
 def generate_html_reports(processed_path: Path, reports_dir: Path) -> list[Path]:
@@ -59,7 +59,7 @@ def render_index(df: pd.DataFrame, findings: list[dict[str, str]]) -> str:
         ("interpretation_other.html", "민원·해석·기타", "해석성 안건과 기타 정책 안건"),
         ("data_quality.html", "데이터 품질", "결측, 문서 길이, 라벨 검수"),
     ]
-    body = cards + "<section><h2>섹션별 리포트</h2><div class='link-grid'>"
+    body = cards + "<section><h2>유형별 리포트</h2><div class='link-grid'>"
     for href, title, desc in links:
         body += f"<a class='report-link' href='{href}'><strong>{escape(title)}</strong><span>{escape(desc)}</span></a>"
     body += "</div></section>"
@@ -241,20 +241,7 @@ def label_review_findings() -> list[dict[str, str]]:
 
 
 def page(title: str, subtitle: str, body: str, active: str) -> str:
-    nav = [
-        ("index", "index.html", "홈"),
-        ("overview", "overview.html", "전체"),
-        ("enforcement", "enforcement.html", "제재"),
-        ("privacy", "privacy_impact.html", "침해요인"),
-        ("public", "public_system.html", "공공점검"),
-        ("provision", "data_provision.html", "제공요청"),
-        ("interpretation", "interpretation_other.html", "해석·기타"),
-        ("quality", "data_quality.html", "품질"),
-    ]
-    nav_html = "".join(
-        f"<a class='{'active' if key == active else ''}' href='{href}'>{label}</a>"
-        for key, href, label in nav
-    )
+    nav_html = top_nav(active, "../")
     return dedent(
         f"""\
         <!doctype html>
@@ -266,15 +253,65 @@ def page(title: str, subtitle: str, body: str, active: str) -> str:
           <link rel="stylesheet" href="style.css">
         </head>
         <body>
-          <header>
-            <div>
+          <header class="site-header">{nav_html}</header>
+          <main>
+            <section class="page-head">
               <p class="eyebrow">PIPC Decision Insights</p>
               <h1>{escape(title)}</h1>
               <p class="subtitle">{escape(subtitle)}</p>
-            </div>
-          </header>
-          <nav>{nav_html}</nav>
-          <main>{body}</main>
+            </section>
+            {body}
+          </main>
+        </body>
+        </html>
+        """
+    )
+
+
+def top_nav(active: str, root_prefix: str = "") -> str:
+    normalized = active
+    if active in {"index", "overview", "enforcement", "privacy", "public", "provision", "interpretation"}:
+        normalized = "types"
+    nav = [
+        ("home", f"{root_prefix}index.html", "홈"),
+        ("issues", f"{root_prefix}issues/index.html", "주요 쟁점"),
+        ("types", f"{root_prefix}full_html/index.html", "유형별 분석"),
+        ("summary", f"{root_prefix}html/index.html", "요약"),
+        ("quality", f"{root_prefix}full_html/data_quality.html", "데이터 품질"),
+    ]
+    links = "".join(
+        f"<a class='{'active' if key == normalized else ''}' href='{href}'>{label}</a>"
+        for key, href, label in nav
+    )
+    return (
+        "<div class='site-header-inner'>"
+        f"<a class='brand' href='{root_prefix}index.html'>PIPC Insight</a>"
+        f"<nav>{links}</nav>"
+        "</div>"
+    )
+
+
+def html_document(title: str, subtitle: str, body: str, active: str, root_prefix: str = "", compact: bool = False) -> str:
+    head = "" if compact else (
+        "<section class='page-head'>"
+        "<p class='eyebrow'>PIPC Decision Insights</p>"
+        f"<h1>{escape(title)}</h1>"
+        f"<p class='subtitle'>{escape(subtitle)}</p>"
+        "</section>"
+    )
+    return dedent(
+        f"""\
+        <!doctype html>
+        <html lang="ko">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>{escape(title)} | PIPC 결정문 인사이트</title>
+          <link rel="stylesheet" href="{root_prefix}style.css">
+        </head>
+        <body>
+          <header class="site-header">{top_nav(active, root_prefix)}</header>
+          <main>{head}{body}</main>
         </body>
         </html>
         """
@@ -287,46 +324,73 @@ def write_css(path: Path) -> None:
             """\
             :root {
               color-scheme: light;
-              --bg: #f7f8fa;
+              --bg: #fafaf7;
               --panel: #ffffff;
-              --text: #172033;
-              --muted: #667085;
-              --line: #d9dee8;
-              --accent: #2563eb;
+              --text: #1a1a1a;
+              --muted: #5c5c5c;
+              --faint: #8a8a8a;
+              --line: #e5e5e0;
+              --accent: #1a4d8f;
+              --accent-2: #0d9488;
+              --danger: #dc2626;
+              --font-sans: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI", "Noto Sans KR", "Helvetica Neue", Arial, sans-serif;
+              --font-serif: "Iowan Old Style", "Apple Garamond", "Source Serif Pro", "Noto Serif KR", Georgia, "Times New Roman", serif;
+              --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
             }
             * { box-sizing: border-box; }
             body {
               margin: 0;
               background: var(--bg);
               color: var(--text);
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
-              line-height: 1.55;
+              font-family: var(--font-sans);
+              font-size: 16px;
+              line-height: 1.65;
+              -webkit-font-smoothing: antialiased;
             }
-            header { background: #172033; color: white; padding: 28px clamp(16px, 4vw, 48px); }
-            header h1 { margin: 4px 0 6px; font-size: clamp(28px, 5vw, 48px); letter-spacing: 0; }
-            .eyebrow { margin: 0; color: #9fb7ff; font-weight: 700; font-size: 13px; text-transform: uppercase; }
-            .subtitle { margin: 0; color: #d8deea; max-width: 760px; }
+            a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+            a:hover { text-decoration-thickness: 2px; }
+            .site-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: rgba(250,250,247,.96); backdrop-filter: blur(8px); }
+            .site-header-inner {
+              width: min(1180px, 100%);
+              margin: 0 auto;
+              padding: 10px clamp(14px, 3vw, 24px);
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 16px;
+            }
+            .brand { color: var(--text); font-weight: 800; letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; }
             nav {
-              position: sticky; top: 0; z-index: 10;
               display: flex; gap: 6px; overflow-x: auto;
-              background: rgba(255,255,255,.96); border-bottom: 1px solid var(--line);
-              padding: 8px clamp(12px, 4vw, 48px);
             }
-            nav a { white-space: nowrap; color: #344054; text-decoration: none; padding: 8px 10px; border-radius: 6px; font-size: 14px; }
-            nav a.active { background: #e9efff; color: #1d4ed8; font-weight: 700; }
-            main { width: min(1180px, 100%); margin: 0 auto; padding: 20px clamp(12px, 3vw, 28px) 48px; }
+            nav a { white-space: nowrap; color: var(--muted); text-decoration: none; padding: 7px 9px; border-radius: 6px; font-size: 14px; }
+            nav a.active { background: #eef2ff; color: #1e40af; font-weight: 700; }
+            main { width: min(1180px, 100%); margin: 0 auto; padding: 18px clamp(12px, 3vw, 28px) 56px; }
+            .page-head {
+              background: transparent;
+              border: 0;
+              border-bottom: 2px solid var(--text);
+              border-radius: 0;
+              padding: 34px 0 22px;
+              margin: 0 0 22px;
+            }
+            .page-head h1 { font-family: var(--font-serif); margin: 0 0 8px; font-size: clamp(34px, 5vw, 58px); line-height: 1.08; letter-spacing: 0; }
+            .eyebrow { margin: 0 0 10px; color: var(--faint); font-family: var(--font-mono); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+            .subtitle { margin: 0; color: var(--muted); max-width: 780px; font-size: 17px; }
             section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin: 14px 0; overflow: hidden; }
-            h2 { margin: 0 0 14px; font-size: clamp(20px, 3vw, 26px); letter-spacing: 0; }
+            section section { margin: 12px 0; }
+            h2 { margin: 0 0 14px; font-family: var(--font-serif); font-size: clamp(22px, 3vw, 31px); line-height: 1.2; letter-spacing: 0; }
+            h3 { margin: 16px 0 8px; font-size: 18px; }
             .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 14px 0; }
-            .card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+            .card { background: white; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; padding: 16px; min-width: 0; }
             .card .label { color: var(--muted); font-size: 13px; }
-            .card .value { font-size: clamp(24px, 4vw, 34px); font-weight: 800; margin: 4px 0; }
+            .card .value { font-family: var(--font-serif); font-size: clamp(24px, 4vw, 34px); font-weight: 800; margin: 4px 0; line-height: 1.12; }
             .card .hint { color: var(--muted); font-size: 13px; }
             .chart-wrap { width: 100%; overflow-x: auto; }
             svg.chart { width: 100%; height: auto; min-width: 520px; }
             .axis, .tick { fill: #667085; font-size: 12px; }
             .bar-label { fill: #172033; font-size: 12px; }
-            .note { border-left: 4px solid var(--accent); background: #eef4ff; padding: 12px 14px; border-radius: 6px; color: #243b63; }
+            .note { border-left: 4px solid var(--accent); background: #f5f7fb; padding: 12px 14px; border-radius: 4px; color: #243b63; }
             .insight-list { margin: 0; padding-left: 20px; }
             .insight-list li { margin: 8px 0; }
             table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -334,11 +398,29 @@ def write_css(path: Path) -> None:
             th { background: #f1f4f9; font-weight: 700; }
             .table-wrap { overflow-x: auto; }
             .link-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .report-link { display: block; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 16px; text-decoration: none; color: var(--text); }
+            .report-link { display: block; background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; padding: 16px; text-decoration: none; color: var(--text); transition: transform 120ms ease, box-shadow 120ms ease; }
+            .report-link:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.06); }
             .report-link strong { display: block; margin-bottom: 4px; }
             .report-link span { color: var(--muted); font-size: 14px; }
+            .issue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+            .issue-card { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--accent-2); border-radius: 8px; padding: 16px; text-decoration: none; color: inherit; }
+            .issue-card strong { display: block; margin-bottom: 8px; font-size: 17px; }
+            .issue-card span { display: block; color: var(--muted); font-size: 14px; }
+            .decision-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+            .decision-card { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 14px; }
+            .decision-card .meta { color: var(--faint); font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px; }
+            .decision-card .title { font-weight: 800; margin-bottom: 8px; }
+            .decision-card .amount { color: var(--danger); font-weight: 800; }
+            .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .7fr); gap: 14px; align-items: start; }
+            .topic-map { width: 100%; min-height: 360px; background: #03060d; border-radius: 8px; border: 1px solid #1e293b; }
+            .topic-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+            .cluster-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+            .cluster-list li { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 10px; background: #fff; }
+            .cluster-list strong { display: block; }
+            .cluster-list span { color: var(--muted); font-size: 13px; }
             @media (max-width: 760px) {
-              .cards, .link-grid { grid-template-columns: 1fr; }
+              .site-header-inner { align-items: flex-start; flex-direction: column; gap: 8px; }
+              .cards, .link-grid, .split, .topic-wrap { grid-template-columns: 1fr; }
               section { padding: 14px; }
               svg.chart { min-width: 440px; }
               th, td { font-size: 13px; }
