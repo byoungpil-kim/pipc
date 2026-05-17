@@ -1,0 +1,5 @@
+area,finding,action,status
+data_provision_request,과태료 부과 목적 문구가 실제 제재로 오탐됨,제공 요청·사전적정성 장르는 sanction_types를 비움,fixed
+public_system_inspection,법규 위반행위 제목이 있는 사건 일부가 실태점검으로 분류됨,제목 기반 장르 판정에서 법규 위반·시정조치를 우선,fixed
+privacy_impact_review,침해요인 평가의 '침해'가 유출·침해 사건으로 오탐될 수 있음,침해요인 평가 장르에서는 case_type을 비움,fixed
+enforcement,사건유형과 factor는 여전히 규칙 기반 다중 라벨,상위 금액·상위 조문 사건부터 추가 표본 검수 필요,open

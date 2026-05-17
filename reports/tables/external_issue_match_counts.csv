@@ -1,0 +1,12 @@
+issue_id,issue,matched_decisions,top_category,top_category_count,enforcement_count,privacy_impact_count,data_provision_count
+11,Sector-specific privacy risk waves,1456,enforcement,684,684,273,105
+4,"Overseas transfer, cloud, and data sovereignty",1265,enforcement,774,774,19,85
+2,Mega-leak enforcement and fine proportionality,1158,enforcement,817,817,8,11
+10,"Victim remedies, collective dispute resolution, and use of fines",1149,enforcement,866,866,51,22
+3,Causation and adequacy of safety measures,791,enforcement,615,615,1,7
+7,CCTV and video information boundaries,551,enforcement,373,373,16,18
+6,Preventive inspection versus ex post sanctions,449,enforcement,128,128,57,37
+9,"Privacy policy evaluation, CPO governance, and accountability",284,enforcement,172,172,4,3
+8,Children's data and legal representative consent,158,other,46,38,44,18
+5,"Automated decisions, AI, and explainability",117,enforcement,85,85,0,0
+1,"Behavioral advertising, consent, and platform control",25,enforcement,19,19,0,1
