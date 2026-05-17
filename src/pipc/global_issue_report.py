@@ -48,6 +48,7 @@ def generate_global_issue_report(processed_path: Path, reports_dir: Path) -> Pat
         matched = matched_df(df, issue.pattern)
         issue_path = out_dir / f"issue_{issue.issue_id:02d}.html"
         issue_path.write_text(render_issue_page(issue, q, matched, issue_examples, source_urls(issue.issue_id, candidates)), encoding="utf-8")
+        write_decision_pages(issue, matched, issue_examples, out_dir)
     legacy = reports_dir / "global_issues.html"
     legacy.write_text(redirect_page("issues/index.html"), encoding="utf-8")
     return path
@@ -59,8 +60,8 @@ def render_report(df: pd.DataFrame, quant: pd.DataFrame, examples: pd.DataFrame,
         [
             ("주요 쟁점", f"{len(EXTERNAL_ISSUES):,}", "외부 논쟁 기반"),
             ("누적 매칭", f"{total_matches:,}", "중복 포함"),
-            ("최대 쟁점", top_issue_label(quant), "매칭 결정문 수 기준"),
             ("개별 페이지", f"{len(EXTERNAL_ISSUES):,}", "쟁점별 상세 분석"),
+            ("대표 결정문", f"{len(examples):,}", "HTML 변환 링크"),
         ]
     )
     body += section("쟁점별 매칭 규모", horizontal_bar(quant["issue_label"], quant["matched_decisions"], "건수"))
@@ -121,6 +122,10 @@ def render_issue_page(issue: ExternalIssue, q: pd.Series, matched: pd.DataFrame,
         ]
     )
     body += section(
+        "이 쟁점의 의미",
+        f"<div class='summary-box'><strong>{escape(issue.korean_label)}</strong><p>{escape(issue_meaning(issue))}</p></div>",
+    )
+    body += section(
         "쟁점 독해",
         insight_list(
             [
@@ -148,11 +153,11 @@ def render_issue_page(issue: ExternalIssue, q: pd.Series, matched: pd.DataFrame,
     )
     if not money.empty:
         body += section("금액 구간", vertical_bar(*money_band_data(money), "건수"))
-    body += section("대표 결정문 읽기", decision_cards(examples))
+    body += section("대표 결정문 읽기", decision_cards(issue, examples))
     if urls:
         body += section("참고 외부 쟁점 출처", source_list(urls))
     body += note("대표 결정문은 전체 사건목록이 아니라 쟁점을 빠르게 이해하기 위한 고신호 표본이다. 원문 검수 전에는 자동 추출 금액과 쟁점 매칭을 확정값으로 보지 않아야 한다.")
-    return html_document(f"{issue.korean_label}", "주요 쟁점 상세 분석", body, "issues", "../", compact=True)
+    return html_document(f"{issue.korean_label}", "주요 쟁점 상세 분석", body, f"issue-{issue.issue_id:02d}", "../", compact=True)
 
 
 def global_quant_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -253,7 +258,24 @@ def qualitative_analysis(issue: ExternalIssue, q: pd.Series) -> str:
         return "정성 분석: 처리방침·CPO·책임성은 단독 쟁점보다 안전조치, 위탁, 내부관리계획 위반의 기반 사유로 나타나는 경향이 있다."
     if issue.issue_id == 10:
         return "정성 분석: 피해구제 쟁점은 과징금·공표·통지와 연결된다. 현 결정문은 피해자 배상 자체보다 행정제재와 재발방지 명령 중심으로 읽힌다."
-    return "정성 분석: 섹터별 파동은 개별 법리보다 반복 위반 업권을 드러낸다. 직원용 도구에서는 업권 필터와 체크리스트 기반 비교 화면으로 전환할 가치가 있다."
+    return "정성 분석: 업권별 반복 리스크는 개별 법리보다 유사한 사고·위반이 특정 업권에서 되풀이되는 양상을 드러낸다. 직원용 도구에서는 업권 필터와 체크리스트 기반 비교 화면으로 전환할 가치가 있다."
+
+
+def issue_meaning(issue: ExternalIssue) -> str:
+    meanings = {
+        1: "맞춤형 광고와 플랫폼 사건은 단순 동의 문구의 문제가 아니라, 누가 처리자인지, 플랫폼이 데이터 흐름을 얼마나 통제하는지, 제3자 제공·국외이전 구조가 어떻게 결합되는지를 함께 봐야 하는 쟁점이다.",
+        2: "대규모 유출 사건은 피해 규모, 안전조치 위반, 통지·신고, 재발방지 조치가 과징금 산정과 비례성 판단에 어떻게 반영되는지를 보여준다.",
+        3: "안전조치 쟁점은 접근통제·접속기록·암호화 같은 조치가 실제 사고를 막기에 충분했는지, 그리고 위반과 유출 사이의 연결이 어떻게 판단되는지를 묻는다.",
+        4: "국외이전과 클라우드 쟁점은 데이터가 해외에 저장·처리되는 사실 자체보다 위탁, 보관, 제3자 제공, 고지·동의 요건을 어떻게 구분하는지가 핵심이다.",
+        5: "AI와 자동화된 결정 쟁점은 아직 결정문 내 직접 사례가 적지만, 설명 요구권·거부권·프로파일링 투명성이 향후 감독 기준으로 커질 수 있는 영역이다.",
+        6: "사전 실태점검은 사후 제재와 달리 예방감독의 성격이 강하다. 점검 결과가 개선권고와 후속 제재로 이어지는 연결 구조를 보는 것이 중요하다.",
+        7: "영상정보 쟁점은 CCTV·블랙박스·관제 영상의 열람, 제공, 목적 외 이용, 수사 협조 예외를 구분해 판단해야 하는 반복 실무 영역이다.",
+        8: "아동 개인정보 쟁점은 법정대리인 동의와 연령확인 설계가 핵심이며, 사건 수가 많지 않아도 사회적 민감도와 반복 가능성이 높다.",
+        9: "처리방침과 CPO 책임성은 독립 위반뿐 아니라 안전조치, 위탁관리, 내부관리계획 위반을 뒷받침하는 운영 책임의 지표로 작동한다.",
+        10: "피해구제 쟁점은 행정제재가 실제 피해자 회복과 어떻게 연결되는지, 집단분쟁조정·손해배상·과징금 활용 논의와 어떤 거리를 갖는지 살피는 영역이다.",
+        11: "업권별 반복 유출·위반 리스크는 통신, 숙박, 식음료, 공공 등 특정 분야에서 비슷한 사고와 위반이 반복되는지를 비교해 예방감독 우선순위를 찾는 쟁점이다.",
+    }
+    return meanings.get(issue.issue_id, issue.legal_focus)
 
 
 def snippet(row: pd.Series, limit: int = 220) -> str:
@@ -301,11 +323,13 @@ def issue_cards(quant: pd.DataFrame) -> str:
     html = "<div class='issue-grid'>"
     for _, row in rows.iterrows():
         issue_id = int(row["issue_id"])
+        issue = next((item for item in EXTERNAL_ISSUES if item.issue_id == issue_id), None)
+        meaning = issue_meaning(issue) if issue else str(row["category_mix"])
         html += (
             f"<a class='issue-card' href='issue_{issue_id:02d}.html'>"
             f"<strong>{issue_id}. {escape(str(row['issue_label']))}</strong>"
-            f"<span>{int(row['matched_decisions']):,}건 매칭 · 제재 {int(row['enforcement_count']):,}건</span>"
-            f"<span>{escape(str(row['category_mix']))}</span>"
+            f"<span>{escape(meaning)}</span>"
+            f"<span class='issue-count'>{int(row['matched_decisions']):,}건 · 제재 {int(row['enforcement_count']):,}건</span>"
             "</a>"
         )
     return html + "</div>"
@@ -361,15 +385,17 @@ def issue_stat_table(df: pd.DataFrame, money: pd.Series) -> str:
     return table(pd.DataFrame(rows, columns=["지표", "값"]))
 
 
-def decision_cards(examples: pd.DataFrame) -> str:
+def decision_cards(issue: ExternalIssue, examples: pd.DataFrame) -> str:
     if examples.empty:
         return "<p>No rows.</p>"
     html = "<div class='decision-grid'>"
     for _, row in examples.iterrows():
+        decision_id = escape(str(row.get("decision_id", "")))
+        href = f"decisions/issue_{issue.issue_id:02d}_decision_{decision_id}.html"
         html += (
             "<article class='decision-card'>"
             f"<div class='meta'>{escape(str(row.get('decision_date', '')))} · ID {escape(str(row.get('decision_id', '')))} · {escape(str(row.get('category', '')))}</div>"
-            f"<div class='title'>{escape(str(row.get('title', '') or '(제목 없음)'))}</div>"
+            f"<a class='title' href='{href}'>{escape(str(row.get('title', '') or '(제목 없음)'))}</a>"
             f"<div class='amount'>{escape(str(row.get('amount', '') or '금액 없음'))}</div>"
             f"<p>{escape(str(row.get('example_text', '')))}</p>"
             f"<div class='meta'>{escape(str(row.get('case_type', '')))}</div>"
@@ -378,11 +404,74 @@ def decision_cards(examples: pd.DataFrame) -> str:
     return html + "</div>"
 
 
-def top_issue_label(quant: pd.DataFrame) -> str:
-    if quant.empty:
-        return "n/a"
-    top = quant.sort_values("matched_decisions", ascending=False).iloc[0]
-    return f"{top['issue_label']} {int(top['matched_decisions']):,}건"
+def write_decision_pages(issue: ExternalIssue, matched: pd.DataFrame, examples: pd.DataFrame, out_dir: Path) -> None:
+    decisions_dir = out_dir / "decisions"
+    decisions_dir.mkdir(parents=True, exist_ok=True)
+    if examples.empty:
+        return
+    wanted = {str(item) for item in examples["decision_id"].astype(str)}
+    for _, row in matched[matched["decision_id"].astype(str).isin(wanted)].iterrows():
+        decision_id = clean_value(row.get("decision_id", ""))
+        path = decisions_dir / f"issue_{issue.issue_id:02d}_decision_{decision_id}.html"
+        path.write_text(render_decision_page(issue, row), encoding="utf-8")
+
+
+def render_decision_page(issue: ExternalIssue, row: pd.Series) -> str:
+    title = clean_value(row.get("title", "")) or "(제목 없음)"
+    amount = format_won(row["monetary_amount"]) if pd.notna(row.get("monetary_amount")) else "금액 없음"
+    body = (
+        "<section class='doc-section'>"
+        + "<div class='summary-box'>"
+        + f"<strong>{escape(issue.korean_label)} 관점에서 읽기</strong>"
+        + f"<p>{escape(snippet(row, 320))}</p>"
+        + "</div>"
+        + table(
+            pd.DataFrame(
+                [
+                    ["결정문 ID", clean_value(row.get("decision_id", ""))],
+                    ["결정일", clean_value(row.get("decision_date", ""))],
+                    ["결정문 유형", CATEGORY_LABELS.get(row.get("document_category", ""), row.get("document_category", ""))],
+                    ["추출 금액", amount],
+                    ["사건유형", clean_value(row.get("case_type", ""))],
+                    ["주요 조문", clean_value(row.get("violated_articles", ""))],
+                ],
+                columns=["항목", "내용"],
+            )
+        )
+        + "</section>"
+    )
+    body += document_text_section("주문", clean_value(row.get("order_text", "")), "주문은 개보위가 해당 사건에서 실제로 명한 조치와 제재를 가장 압축적으로 보여준다.")
+    body += document_text_section("이유", clean_value(row.get("reason_text", "")), "이유 부분은 사실관계, 법 적용, 위반 판단의 근거를 확인하는 핵심 구간이다.")
+    body += document_text_section("결정요지", clean_value(row.get("summary_text", "")), "결정요지는 사건의 판단 구조를 빠르게 파악하기 위한 보조 자료다.")
+    body += document_text_section("별지", clean_value(row.get("appendix_text", "")), "별지는 세부 사실관계나 표 형식 정보가 포함될 수 있어 정량 분석의 검수 대상이다.")
+    return html_document(title, "대표 결정문 HTML 보기", body, f"issue-{issue.issue_id:02d}", "../../", compact=True)
+
+
+def document_text_section(title: str, text: str, summary: str) -> str:
+    if not text.strip():
+        return ""
+    chunks = paragraph_chunks(text)
+    html = f"<section class='doc-section'><h2>{escape(title)}</h2><div class='summary-box'><strong>읽는 포인트</strong><p>{escape(summary)}</p></div>"
+    for chunk in chunks:
+        html += f"<p>{escape(chunk)}</p>"
+    return html + "</section>"
+
+
+def paragraph_chunks(text: str, limit: int = 1200) -> list[str]:
+    normalized = "\n".join(line.strip() for line in text.splitlines() if line.strip())
+    if not normalized:
+        return []
+    chunks = []
+    current = ""
+    for para in normalized.split("\n"):
+        if len(current) + len(para) + 1 > limit and current:
+            chunks.append(current)
+            current = para
+        else:
+            current = f"{current}\n{para}".strip()
+    if current:
+        chunks.append(current)
+    return chunks
 
 
 def insight_list(items: list[str]) -> str:

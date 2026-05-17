@@ -96,10 +96,10 @@ EXTERNAL_ISSUES = [
     ),
     ExternalIssue(
         11,
-        "Sector-specific privacy risk waves",
-        "섹터별 개인정보 위험 파동",
+        "Sector-specific recurring leaks and violations",
+        "업권별 반복 유출·위반 리스크",
         r"통신|식음료|의료|병원|모빌리티|자동차|플랫폼|프랜차이즈|공공기관|금융|카드|게임|숙박|호텔|커피|버거",
-        "업권별 반복 위반, 조사 파동, 섹터별 체크리스트와 예방감독",
+        "통신·식음료·숙박·공공 등 업권별 반복 유출·위반, 예방감독 체크리스트, 조사 우선순위",
         "통신·식음료·호텔·공공시스템 보도에서 확인됨",
     ),
 ]

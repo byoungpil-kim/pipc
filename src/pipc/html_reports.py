@@ -7,9 +7,10 @@ from textwrap import dedent
 import pandas as pd
 
 from .insights import CATEGORY_LABELS, ensure_columns, filter_category, split_items
+from .issue_taxonomy import EXTERNAL_ISSUES
 
 
-PALETTE = ["#22d3ee", "#38bdf8", "#a78bfa", "#34d399", "#f472b6", "#f59e0b", "#94a3b8"]
+PALETTE = ["#38bdf8", "#0ea5e9", "#0284c7", "#0369a1", "#075985", "#64748b", "#475569"]
 
 
 def generate_html_reports(processed_path: Path, reports_dir: Path) -> list[Path]:
@@ -288,6 +289,10 @@ def top_nav(active: str, root_prefix: str = "") -> str:
         f"<a class='sb-item {'is-active' if key == normalized else ''}' href='{href}'><span class='sb-ico'>{nav_icon(key)}</span><span class='sb-label'>{label}</span></a>"
         for key, href, label in nav
     )
+    issue_links = "".join(
+        f"<a class='sb-item sb-subitem {'is-active' if normalized == f'issue-{issue.issue_id:02d}' else ''}' href='{root_prefix}issues/issue_{issue.issue_id:02d}.html'><span class='sb-ico'>{nav_icon('dot')}</span><span class='sb-label'>{issue.issue_id}. {escape(issue.korean_label)}</span></a>"
+        for issue in EXTERNAL_ISSUES
+    )
     type_links = "".join(
         f"<a class='sb-item sb-subitem {'is-active' if key == normalized else ''}' href='{href}'><span class='sb-ico'>{nav_icon(key)}</span><span class='sb-label'>{label}</span></a>"
         for key, href, label in type_nav
@@ -302,7 +307,7 @@ def top_nav(active: str, root_prefix: str = "") -> str:
         f"<a class='sb-brand-text' href='{root_prefix}index.html'><span class='sb-name'>PIPC INSIGHT</span><span class='sb-sub'>Decision Atlas</span></a>"
         "</div>"
         "<div class='sb-status'><span class='sb-led'></span><span>LINK · OK</span></div>"
-        f"<nav class='sb-nav' aria-label='PIPC report navigation'>{links}<div class='sb-group'>결정문 유형</div>{type_links}<div class='sb-group'>관리</div>{utility_links}</nav>"
+        f"<nav class='sb-nav' aria-label='PIPC report navigation'>{links}<details class='sb-details' {'open' if normalized in {'issues'} or normalized.startswith('issue-') else ''}><summary>+ 주요 쟁점</summary>{issue_links}</details><div class='sb-group'>결정문 유형</div>{type_links}<div class='sb-group'>관리</div>{utility_links}</nav>"
         "<div class='sb-footer'><span>v0.2 · reports</span></div>"
     )
 
@@ -333,6 +338,7 @@ def nav_icon(key: str) -> str:
         "provision": "<rect x='2' y='4' width='8' height='8'></rect><rect x='10' y='6' width='4' height='4'></rect><rect x='6' y='7' width='5' height='2' fill='#05080f'></rect>",
         "interpretation": "<rect x='2' y='3' width='12' height='8'></rect><rect x='4' y='11' width='4' height='2'></rect><rect x='4' y='6' width='2' height='2' fill='#05080f'></rect><rect x='7' y='6' width='2' height='2' fill='#05080f'></rect><rect x='10' y='6' width='2' height='2' fill='#05080f'></rect>",
         "quality": "<rect x='3' y='2' width='10' height='12'></rect><rect x='5' y='4' width='6' height='2' fill='#05080f'></rect><rect x='5' y='8' width='2' height='2' fill='#05080f'></rect><rect x='9' y='8' width='2' height='2' fill='#05080f'></rect>",
+        "dot": "<rect x='6' y='6' width='4' height='4'></rect>",
     }
     return f"<svg viewBox='0 0 16 16' shape-rendering='crispEdges' aria-hidden='true'>{shapes.get(key, shapes['types'])}</svg>"
 
@@ -428,6 +434,10 @@ def write_css(path: Path) -> None:
             @keyframes sb-pulse { 50% { opacity: .45; } }
             .sb-nav { display: flex; flex-direction: column; gap: 2px; overflow: visible; }
             .sb-group { margin: 12px 8px 4px; color: #475569; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+            .sb-details { margin: 2px 0 0; }
+            .sb-details summary { cursor: pointer; list-style: none; margin: 10px 8px 4px; color: #64748b; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+            .sb-details summary::-webkit-details-marker { display: none; }
+            .sb-details[open] summary { color: var(--accent); }
             .sb-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; color: var(--muted); text-decoration: none; border-radius: 3px; font-size: 12px; letter-spacing: .03em; transition: background 100ms ease, color 100ms ease; }
             .sb-item:hover { background: #0c1426; color: var(--text); text-decoration: none; }
             .sb-item.is-active { background: #0e1a32; color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); }
@@ -476,19 +486,35 @@ def write_css(path: Path) -> None:
             .report-link:hover { transform: translateY(-2px); border-color: var(--accent); text-decoration: none; }
             .report-link strong { display: block; margin-bottom: 4px; }
             .report-link span { color: var(--muted); font-size: 14px; }
-            .issue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-            .issue-card { background: #05080f; border: 1px solid var(--line); border-top: 3px solid var(--accent-2); border-radius: 6px; padding: 16px; text-decoration: none; color: inherit; }
+            .issue-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+            .issue-card { display: grid; grid-template-columns: minmax(180px, .38fr) minmax(0, 1fr) auto; gap: 14px; align-items: start; background: #05080f; border: 1px solid var(--line); border-left: 3px solid var(--accent-2); border-radius: 6px; padding: 16px; text-decoration: none; color: inherit; }
             .issue-card:hover { border-color: var(--accent); text-decoration: none; }
             .issue-card strong { display: block; margin-bottom: 8px; font-size: 17px; }
             .issue-card span { display: block; color: var(--muted); font-size: 14px; }
-            .decision-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+            .issue-card .issue-count { color: var(--accent); font-family: var(--font-mono); white-space: nowrap; }
+            .decision-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
             .decision-card { border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 14px; }
             .decision-card .meta { color: var(--faint); font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px; }
             .decision-card .title { font-weight: 800; margin-bottom: 8px; }
             .decision-card .amount { color: var(--danger); font-weight: 800; }
+            .decision-card a.title { color: var(--text); text-decoration: none; }
+            .decision-card a.title:hover { color: var(--accent); }
+            .summary-box { border: 1px solid #164e63; background: #07111f; border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px; margin: 12px 0; }
+            .summary-box strong { display: block; color: var(--accent); margin-bottom: 6px; }
+            .doc-section p { white-space: pre-wrap; }
             .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .7fr); gap: 14px; align-items: start; }
             .topic-map { width: 100%; min-height: 360px; background: #03060d; border-radius: 8px; border: 1px solid #1e293b; }
             .topic-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+            .topic-atlas { display: grid; gap: 12px; }
+            .topic-map-row { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; align-items: stretch; }
+            .topic-clusters { max-height: 520px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 8px; display: grid; gap: 6px; }
+            .topic-cluster-button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); padding: 8px; font: inherit; cursor: pointer; }
+            .topic-cluster-button strong { color: var(--accent); font-family: var(--font-mono); font-size: 12px; }
+            .topic-cluster-button:hover, .topic-cluster-button.is-selected { background: #0c1426; border-color: #164e63; color: var(--text); }
+            .topic-point, .topic-label { cursor: pointer; }
+            .topic-point.is-selected { stroke: #f8fafc; stroke-width: 2.5; opacity: 1; }
+            .topic-label.is-selected { fill: var(--accent); }
+            .topic-detail { border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 12px; }
             .cluster-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
             .cluster-list li { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 10px; background: #05080f; }
             .cluster-list strong { display: block; }
@@ -499,10 +525,12 @@ def write_css(path: Path) -> None:
               .sb-brand { border: 0; padding: 0; }
               .sb-status, .sb-footer { display: none; }
               .sb-nav { flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 2px; }
-              .sb-group { display: none; }
+              .sb-group, .sb-details summary { display: none; }
+              .sb-details, .sb-details[open] { display: contents; }
               .sb-item, .sb-subitem { white-space: nowrap; padding: 7px 10px; }
               .sb-item.is-active { box-shadow: inset 0 -2px 0 var(--accent); }
-              .cards, .link-grid, .split, .topic-wrap { grid-template-columns: 1fr; }
+              .cards, .link-grid, .split, .topic-wrap, .topic-map-row { grid-template-columns: 1fr; }
+              .issue-card { grid-template-columns: 1fr; }
               section { padding: 14px; }
               svg.chart { min-width: 440px; }
               th, td { font-size: 13px; }
@@ -569,7 +597,7 @@ def vertical_bar(labels, values, title: str) -> str:
         parts.append(f"<rect x='{x:.1f}' y='{y:.1f}' width='{bar_w:.1f}' height='{h:.1f}' rx='3' fill='{PALETTE[i % len(PALETTE)]}'></rect>")
         parts.append(f"<text x='{x + bar_w/2:.1f}' y='{y - 5:.1f}' text-anchor='middle' class='bar-label'>{value:,.0f}</text>")
         parts.append(f"<text x='{x + bar_w/2:.1f}' y='{height - 22}' text-anchor='middle' class='tick'>{escape(label[-8:])}</text>")
-    parts.append(f"<line x1='{left}' y1='{top + plot_h}' x2='{width-16}' y2='{top + plot_h}' stroke='#d9dee8'></line>")
+    parts.append(f"<line x1='{left}' y1='{top + plot_h}' x2='{width-16}' y2='{top + plot_h}' stroke='#1e293b'></line>")
     return f"<div class='chart-wrap'><svg class='chart' viewBox='0 0 {width} {height}' role='img'>{''.join(parts)}</svg></div>"
 
 
@@ -601,7 +629,7 @@ def stacked_bar(df: pd.DataFrame, x_col: str, stack_col: str, value_col: str) ->
         lx = left + (j % 3) * 240
         ly = height - 14 - (j // 3) * 18
         legend.append(f"<rect x='{lx}' y='{ly-10}' width='10' height='10' fill='{PALETTE[j % len(PALETTE)]}'></rect><text x='{lx+15}' y='{ly}' class='tick'>{escape(str(stack))}</text>")
-    parts.append(f"<line x1='{left}' y1='{top+plot_h}' x2='{width-16}' y2='{top+plot_h}' stroke='#d9dee8'></line>")
+    parts.append(f"<line x1='{left}' y1='{top+plot_h}' x2='{width-16}' y2='{top+plot_h}' stroke='#1e293b'></line>")
     return f"<div class='chart-wrap'><svg class='chart' viewBox='0 0 {width} {height}' role='img'>{''.join(parts + legend)}</svg></div>"
 
 

@@ -9,6 +9,7 @@ import re
 import pandas as pd
 
 from .html_reports import (
+    PALETTE,
     count_category,
     exploded,
     format_won,
@@ -556,23 +557,15 @@ def topic_map_section(category: str, topic_maps: dict[str, dict]) -> str:
         return note("이 유형의 OpenRouter 기반 내부 토픽 지도는 아직 생성되지 않았다. `pipc type-topic-maps` 실행 후 리포트를 다시 생성하면 반영된다.")
     clusters = data.get("clusters", [])
     pages = data.get("pages", [])
-    cluster_table = pd.DataFrame(
-        [
-            {
-                "토픽": item.get("label", ""),
-                "설명": item.get("subtitle", ""),
-                "건수": item.get("size", 0),
-                "주요 사건유형": item.get("top_case_types", ""),
-            }
-            for item in clusters
-        ]
-    )
     body = (
-        "<div class='topic-wrap'>"
+        "<div class='topic-atlas' data-topic-atlas='1'>"
+        "<div class='topic-map-row'>"
         + topic_svg(data)
-        + "<div>"
-        + table(cluster_table)
+        + cluster_buttons(clusters)
         + "</div>"
+        + "<div class='topic-detail' aria-live='polite'></div>"
+        + topic_data_script(data)
+        + topic_interaction_script()
         + "</div>"
         + f"<p class='note'>방식: {data.get('method', '')}. 점 하나가 한 결정문이고, 색상은 유형 내부 토픽을 뜻한다.</p>"
     )
@@ -596,15 +589,118 @@ def topic_svg(data: dict) -> str:
     for page in pages:
         x = float(page.get("x", 50)) / 100 * (width - 80) + 40
         y = (100 - float(page.get("y", 50))) / 100 * (height - 80) + 40
-        color = str(page.get("color", "#8a8a8a"))
+        cluster_id = int(page.get("cluster", -1))
+        color = topic_color(cluster_id)
         title = str(page.get("title", ""))
-        parts.append(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4.2' fill='{color}' opacity='.82'><title>{escape_svg(title)}</title></circle>")
+        parts.append(f"<circle class='topic-point' data-cluster='{cluster_id}' cx='{x:.1f}' cy='{y:.1f}' r='4.2' fill='{color}' opacity='.78'><title>{escape_svg(title)}</title></circle>")
     for cluster in clusters:
         x = float(cluster.get("x", 50)) / 100 * (width - 80) + 40
         y = (100 - float(cluster.get("y", 50))) / 100 * (height - 80) + 40
+        cluster_id = int(cluster.get("cluster_idx", -1))
         label = escape_svg(str(cluster.get("label", ""))[:16])
-        parts.append(f"<text x='{x:.1f}' y='{y:.1f}' fill='#f8fafc' font-size='16' font-weight='700'>{label}</text>")
+        parts.append(f"<text class='topic-label' data-cluster='{cluster_id}' x='{x:.1f}' y='{y:.1f}' fill='#e2e8f0' font-size='16' font-weight='700'>{label}</text>")
     return f"<div class='chart-wrap'><svg class='topic-map' viewBox='0 0 {width} {height}' role='img'>{''.join(parts)}</svg></div>"
+
+
+def cluster_buttons(clusters: list[dict]) -> str:
+    html = "<div class='topic-clusters'>"
+    for cluster in clusters:
+        cluster_id = int(cluster.get("cluster_idx", -1))
+        label = escape_svg(str(cluster.get("label", "")))
+        size = int(cluster.get("size", 0))
+        html += (
+            f"<button class='topic-cluster-button' type='button' data-cluster='{cluster_id}'>"
+            f"<span>{label}</span><strong>{size:,}</strong>"
+            "</button>"
+        )
+    return html + "</div>"
+
+
+def topic_data_script(data: dict) -> str:
+    clusters = []
+    pages = data.get("pages", [])
+    for cluster in data.get("clusters", []):
+        cluster_id = int(cluster.get("cluster_idx", -1))
+        decisions = [
+            {
+                "decision_id": page.get("decision_id", ""),
+                "title": page.get("title", "") or "(제목 없음)",
+                "decision_date": page.get("decision_date", ""),
+                "amount": page.get("amount", ""),
+                "case_type": page.get("case_type", ""),
+            }
+            for page in pages
+            if int(page.get("cluster", -999)) == cluster_id
+        ][:18]
+        clusters.append(
+            {
+                "cluster_idx": cluster_id,
+                "label": cluster.get("label", ""),
+                "subtitle": cluster.get("subtitle", ""),
+                "size": cluster.get("size", 0),
+                "top_case_types": cluster.get("top_case_types", ""),
+                "decisions": decisions,
+            }
+        )
+    payload = json.dumps({"clusters": clusters}, ensure_ascii=False).replace("</", "<\\/")
+    return f"<script type='application/json' class='topic-data'>{payload}</script>"
+
+
+def topic_interaction_script() -> str:
+    return """
+<script>
+(() => {
+  document.querySelectorAll('.topic-atlas:not([data-ready])').forEach((atlas) => {
+    atlas.dataset.ready = '1';
+    const data = JSON.parse(atlas.querySelector('.topic-data').textContent);
+    const detail = atlas.querySelector('.topic-detail');
+    const buttons = Array.from(atlas.querySelectorAll('[data-cluster]'));
+    const render = (clusterId) => {
+      const cluster = data.clusters.find((item) => String(item.cluster_idx) === String(clusterId)) || data.clusters[0];
+      if (!cluster) return;
+      atlas.querySelectorAll('[data-cluster]').forEach((el) => {
+        el.classList.toggle('is-selected', String(el.dataset.cluster) === String(cluster.cluster_idx));
+      });
+      const rows = cluster.decisions.map((decision) => `
+        <tr>
+          <td>${escapeHtml(decision.decision_date || '')}</td>
+          <td>${escapeHtml(String(decision.decision_id || ''))}</td>
+          <td>${escapeHtml(decision.title || '')}</td>
+          <td>${escapeHtml(decision.case_type || '')}</td>
+        </tr>
+      `).join('');
+      detail.innerHTML = `
+        <div class="summary-box">
+          <strong>${escapeHtml(cluster.label)}</strong>
+          <p>${escapeHtml(cluster.subtitle || '')}</p>
+          <p class="meta">${Number(cluster.size || 0).toLocaleString()}건 · ${escapeHtml(cluster.top_case_types || '')}</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>일자</th><th>ID</th><th>제목</th><th>사건유형</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="4">표시할 결정문이 없습니다.</td></tr>'}</tbody>
+          </table>
+        </div>
+      `;
+    };
+    const escapeHtml = (value) => String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+    buttons.forEach((button) => button.addEventListener('click', () => render(button.dataset.cluster)));
+    if (data.clusters.length) render(data.clusters[0].cluster_idx);
+  });
+})();
+</script>
+"""
+
+
+def topic_color(cluster_id: int) -> str:
+    if cluster_id < 0:
+        return "#475569"
+    return PALETTE[cluster_id % len(PALETTE)]
 
 
 def escape_svg(text: str) -> str:

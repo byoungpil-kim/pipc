@@ -142,7 +142,7 @@ Keyword matching against the 3,990 processed decisions produced `reports/tables/
 
 Top broad matches:
 
-- Sector-specific privacy risk waves: 1,456 decisions
+- Sector-specific recurring leaks and violations: 1,456 decisions
 - Overseas transfer, cloud, and data sovereignty: 1,265 decisions
 - Mega-leak enforcement and fine proportionality: 1,158 decisions
 - Victim remedies, collective dispute resolution, and use of fines: 1,149 decisions
