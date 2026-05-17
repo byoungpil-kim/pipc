@@ -503,18 +503,18 @@ def write_css(path: Path) -> None:
             .summary-box strong { display: block; color: var(--accent); margin-bottom: 6px; }
             .doc-section p { white-space: pre-wrap; }
             .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .7fr); gap: 14px; align-items: start; }
-            .topic-map { width: 100%; min-height: 360px; background: #03060d; border-radius: 8px; border: 1px solid #1e293b; }
+            .topic-map { width: 100%; min-height: 420px; background: #03060d; border-radius: 8px; border: 1px solid #1e293b; }
             .topic-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
             .topic-atlas { display: grid; gap: 12px; }
-            .topic-map-row { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; align-items: stretch; }
-            .topic-clusters { max-height: 520px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 8px; display: grid; gap: 6px; }
-            .topic-cluster-button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); padding: 8px; font: inherit; cursor: pointer; }
+            .topic-clusters { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 8px; display: flex; gap: 6px; min-height: 56px; }
+            .topic-cluster-button { flex: 0 0 220px; min-height: 40px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); padding: 8px; font: inherit; cursor: pointer; }
+            .topic-cluster-button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .topic-cluster-button strong { color: var(--accent); font-family: var(--font-mono); font-size: 12px; }
             .topic-cluster-button:hover, .topic-cluster-button.is-selected { background: #0c1426; border-color: #164e63; color: var(--text); }
             .topic-point, .topic-label { cursor: pointer; }
             .topic-point.is-selected { stroke: #f8fafc; stroke-width: 2.5; opacity: 1; }
             .topic-label.is-selected { fill: var(--accent); }
-            .topic-detail { border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 12px; }
+            .topic-detail { border: 1px solid var(--line); border-radius: 6px; background: #05080f; padding: 12px; max-height: 300px; overflow: auto; }
             .cluster-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
             .cluster-list li { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 10px; background: #05080f; }
             .cluster-list strong { display: block; }
@@ -529,7 +529,7 @@ def write_css(path: Path) -> None:
               .sb-details, .sb-details[open] { display: contents; }
               .sb-item, .sb-subitem { white-space: nowrap; padding: 7px 10px; }
               .sb-item.is-active { box-shadow: inset 0 -2px 0 var(--accent); }
-              .cards, .link-grid, .split, .topic-wrap, .topic-map-row { grid-template-columns: 1fr; }
+              .cards, .link-grid, .split, .topic-wrap { grid-template-columns: 1fr; }
               .issue-card { grid-template-columns: 1fr; }
               section { padding: 14px; }
               svg.chart { min-width: 440px; }

@@ -9,7 +9,6 @@ import re
 import pandas as pd
 
 from .html_reports import (
-    PALETTE,
     count_category,
     exploded,
     format_won,
@@ -29,6 +28,9 @@ from .html_reports import (
     year_counts,
 )
 from .insights import CATEGORY_LABELS, ensure_columns, filter_category, split_items
+
+
+TOPIC_PALETTE = ["#22d3ee", "#a78bfa", "#f472b6", "#34d399", "#f59e0b", "#fb7185", "#60a5fa", "#c084fc", "#2dd4bf", "#facc15"]
 
 
 ISSUE_TERMS = {
@@ -555,26 +557,29 @@ def topic_map_section(category: str, topic_maps: dict[str, dict]) -> str:
     data = topic_maps.get(category)
     if not data:
         return note("이 유형의 OpenRouter 기반 내부 토픽 지도는 아직 생성되지 않았다. `pipc type-topic-maps` 실행 후 리포트를 다시 생성하면 반영된다.")
-    clusters = data.get("clusters", [])
-    pages = data.get("pages", [])
+    clusters = selected_topic_clusters(data)
+    hidden_count = max(0, len(data.get("clusters", [])) - len(clusters))
     body = (
         "<div class='topic-atlas' data-topic-atlas='1'>"
-        "<div class='topic-map-row'>"
-        + topic_svg(data)
+        + topic_svg(data, clusters)
         + cluster_buttons(clusters)
-        + "</div>"
         + "<div class='topic-detail' aria-live='polite'></div>"
-        + topic_data_script(data)
+        + topic_data_script(data, clusters)
         + topic_interaction_script()
         + "</div>"
-        + f"<p class='note'>방식: {data.get('method', '')}. 점 하나가 한 결정문이고, 색상은 유형 내부 토픽을 뜻한다.</p>"
+        + f"<p class='note'>방식: {data.get('method', '')}. 점 하나가 한 결정문이다. 클릭 가능한 대표 토픽은 건수 기준 상위 {len(clusters)}개로 제한했고, 나머지 {hidden_count}개 토픽의 점은 배경 신호로 표시했다.</p>"
     )
     return section("유형 내부 토픽 지도", body)
 
 
-def topic_svg(data: dict) -> str:
-    pages = data.get("pages", [])
+def selected_topic_clusters(data: dict, limit: int = 10) -> list[dict]:
     clusters = data.get("clusters", [])
+    return sorted(clusters, key=lambda item: int(item.get("size", 0)), reverse=True)[:limit]
+
+
+def topic_svg(data: dict, clusters: list[dict]) -> str:
+    pages = data.get("pages", [])
+    selected_ids = {int(cluster.get("cluster_idx", -1)) for cluster in clusters}
     width = 900
     height = 520
     parts = [
@@ -590,9 +595,12 @@ def topic_svg(data: dict) -> str:
         x = float(page.get("x", 50)) / 100 * (width - 80) + 40
         y = (100 - float(page.get("y", 50))) / 100 * (height - 80) + 40
         cluster_id = int(page.get("cluster", -1))
-        color = topic_color(cluster_id)
+        color = topic_color(cluster_id) if cluster_id in selected_ids else "#334155"
+        point_class = "topic-point" if cluster_id in selected_ids else "topic-point is-muted"
+        opacity = ".82" if cluster_id in selected_ids else ".22"
         title = str(page.get("title", ""))
-        parts.append(f"<circle class='topic-point' data-cluster='{cluster_id}' cx='{x:.1f}' cy='{y:.1f}' r='4.2' fill='{color}' opacity='.78'><title>{escape_svg(title)}</title></circle>")
+        data_attr = f" data-cluster='{cluster_id}'" if cluster_id in selected_ids else ""
+        parts.append(f"<circle class='{point_class}'{data_attr} cx='{x:.1f}' cy='{y:.1f}' r='4.2' fill='{color}' opacity='{opacity}'><title>{escape_svg(title)}</title></circle>")
     for cluster in clusters:
         x = float(cluster.get("x", 50)) / 100 * (width - 80) + 40
         y = (100 - float(cluster.get("y", 50))) / 100 * (height - 80) + 40
@@ -616,10 +624,10 @@ def cluster_buttons(clusters: list[dict]) -> str:
     return html + "</div>"
 
 
-def topic_data_script(data: dict) -> str:
-    clusters = []
+def topic_data_script(data: dict, clusters: list[dict]) -> str:
+    cluster_payload = []
     pages = data.get("pages", [])
-    for cluster in data.get("clusters", []):
+    for cluster in clusters:
         cluster_id = int(cluster.get("cluster_idx", -1))
         decisions = [
             {
@@ -632,7 +640,7 @@ def topic_data_script(data: dict) -> str:
             for page in pages
             if int(page.get("cluster", -999)) == cluster_id
         ][:18]
-        clusters.append(
+        cluster_payload.append(
             {
                 "cluster_idx": cluster_id,
                 "label": cluster.get("label", ""),
@@ -642,7 +650,7 @@ def topic_data_script(data: dict) -> str:
                 "decisions": decisions,
             }
         )
-    payload = json.dumps({"clusters": clusters}, ensure_ascii=False).replace("</", "<\\/")
+    payload = json.dumps({"clusters": cluster_payload}, ensure_ascii=False).replace("</", "<\\/")
     return f"<script type='application/json' class='topic-data'>{payload}</script>"
 
 
@@ -700,7 +708,7 @@ def topic_interaction_script() -> str:
 def topic_color(cluster_id: int) -> str:
     if cluster_id < 0:
         return "#475569"
-    return PALETTE[cluster_id % len(PALETTE)]
+    return TOPIC_PALETTE[cluster_id % len(TOPIC_PALETTE)]
 
 
 def escape_svg(text: str) -> str:
