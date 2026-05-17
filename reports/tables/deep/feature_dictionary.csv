@@ -1,0 +1,89 @@
+feature,kind,non_null
+decision_id,metadata,3990
+decision_date,metadata,3981
+year,metadata,3990
+year_num,metadata,3981
+period,metadata,3990
+post_2020,metadata,3990
+post_2022,metadata,3990
+document_category,metadata,3990
+category_label,metadata,3990
+meeting_type,metadata,2922
+decision_type,metadata,3985
+applicant,metadata,3533
+title,metadata,3792
+sanction_strength,sanction flag,3990
+monetary_amount,metadata,719
+log_monetary_amount,metadata,719
+has_monetary_amount,metadata,3990
+document_length,metadata,3990
+order_length,metadata,3990
+reason_length,metadata,3990
+topic_cluster,metadata,3982
+topic_label,metadata,3990
+topic_subtitle,metadata,3990
+sanction_types,sanction flag,1595
+case_type,case type flag,1484
+sanction_개선권고,sanction flag,3990
+sanction_고발,sanction flag,3990
+sanction_공표명령,sanction flag,3990
+sanction_과징금,sanction flag,3990
+sanction_과태료,sanction flag,3990
+sanction_시정명령,sanction flag,3990
+sanction_주의,sanction flag,3990
+case_국외이전,case type flag,3990
+case_동의_고지_위반,case type flag,3990
+case_목적_외_이용,case type flag,3990
+case_민감정보_고유식별정보,case type flag,3990
+case_보유기간_파기_위반,case type flag,3990
+case_아동_개인정보,case type flag,3990
+case_안전조치_미흡,case type flag,3990
+case_영상정보_처리,case type flag,3990
+case_유출_침해,case type flag,3990
+case_접근권한_내부통제,case type flag,3990
+case_정보주체_권리보장,case type flag,3990
+case_제3자_제공,case type flag,3990
+case_처리위탁,case type flag,3990
+factor_고유식별정보_포함_여부,factor flag,3990
+factor_고의_또는_중과실,factor flag,3990
+factor_공표_또는_시정명령_여부,factor flag,3990
+factor_국외이전_고지_동의_여부,factor flag,3990
+factor_금전_제재_여부,factor flag,3990
+factor_내부통제_및_안전조치_수준,factor flag,3990
+factor_동의_적법성,factor flag,3990
+factor_민감정보_포함_여부,factor flag,3990
+factor_반복성,factor flag,3990
+factor_사후_시정_노력,factor flag,3990
+factor_수집_이용_목적_명확성,factor flag,3990
+factor_위반_기간,factor flag,3990
+factor_정보주체_규모,factor flag,3990
+factor_제3자_제공_또는_위탁_구조,factor flag,3990
+factor_피해_발생_또는_위험_발생,factor flag,3990
+issue_01,issue flag,3990
+issue_02,issue flag,3990
+issue_03,issue flag,3990
+issue_04,issue flag,3990
+issue_05,issue flag,3990
+issue_06,issue flag,3990
+issue_07,issue flag,3990
+issue_08,issue flag,3990
+issue_09,issue flag,3990
+issue_10,issue flag,3990
+issue_11,issue flag,3990
+sector_통신,sector flag,3990
+sector_플랫폼_광고,sector flag,3990
+sector_공공,sector flag,3990
+sector_의료_보건,sector flag,3990
+sector_금융_보험,sector flag,3990
+sector_식음료_프랜차이즈,sector flag,3990
+sector_숙박_여행,sector flag,3990
+sector_교육_아동,sector flag,3990
+sector_모빌리티_교통,sector flag,3990
+sector_게임_콘텐츠,sector flag,3990
+outcome_high_sanction,outcome,3990
+outcome_has_fine,outcome,3990
+outcome_has_publication,outcome,3990
+outcome_has_correction,outcome,3990
+outcome_has_recommendation,outcome,3990
+outcome_data_request_allowed,outcome,3990
+outcome_data_request_denied,outcome,3990

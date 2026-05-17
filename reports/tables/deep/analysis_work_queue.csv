@@ -1,0 +1,17 @@
+phase,rank,target,label
+issue,1,issue_02,대규모 유출과 과징금 비례성
+issue,2,issue_03,안전조치 충분성·인과관계
+issue,3,issue_01,행태정보·맞춤형 광고·플랫폼 통제
+issue,4,issue_04,국외이전·클라우드·데이터 주권
+issue,5,issue_07,CCTV·영상정보 경계
+issue,6,issue_06,사전 실태점검과 사후 제재
+issue,7,issue_09,처리방침 평가·CPO·책임성
+issue,8,issue_10,피해구제·분쟁조정·과징금 활용
+issue,9,issue_11,업권별 반복 유출·위반 리스크
+issue,10,issue_08,아동 개인정보·법정대리인 동의
+issue,11,issue_05,자동화된 결정·AI·설명가능성
+type,1,enforcement,법규 위반·제재
+type,2,privacy_impact_review,침해요인 평가
+type,3,data_provision_request,개인정보 제공 요청
+type,4,public_system_inspection,공공시스템·실태점검
+type,5,interpretation_other,민원·해석·기타

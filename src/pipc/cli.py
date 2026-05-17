@@ -69,6 +69,9 @@ def build_parser() -> argparse.ArgumentParser:
     global_issue_report = sub.add_parser("global-issue-report", help="Generate the separate global issue HTML report.")
     global_issue_report.set_defaults(func=cmd_global_issue_report)
 
+    deep_quant_tables = sub.add_parser("deep-quant-tables", help="Build analysis-ready tables for deep quantitative text analysis.")
+    deep_quant_tables.set_defaults(func=cmd_deep_quant_tables)
+
     type_topic_maps = sub.add_parser("type-topic-maps", help="Build OpenRouter/UMAP/HDBSCAN topic maps inside each decision type.")
     type_topic_maps.add_argument("--category", action="append", help="Limit to one document_category. Can be repeated.")
     type_topic_maps.set_defaults(func=cmd_type_topic_maps)
@@ -176,6 +179,15 @@ def cmd_global_issue_report(_args: argparse.Namespace) -> int:
     settings = get_settings()
     path = generate_global_issue_report(settings.processed_dir / "decisions.csv", settings.reports_dir)
     print(f"Wrote {path}")
+    return 0
+
+
+def cmd_deep_quant_tables(_args: argparse.Namespace) -> int:
+    from .deep_quant import generate_deep_quant_tables
+
+    settings = get_settings()
+    paths = generate_deep_quant_tables(settings.processed_dir / "decisions.csv", settings.reports_dir)
+    print(f"Wrote {len(paths)} deep quantitative analysis tables under {settings.reports_dir / 'tables' / 'deep'}")
     return 0
 
 
