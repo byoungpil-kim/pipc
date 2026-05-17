@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from html import escape
 from pathlib import Path
+import re
 from textwrap import dedent
 
 import pandas as pd
@@ -421,10 +422,6 @@ def render_decision_page(issue: ExternalIssue, row: pd.Series) -> str:
     amount = format_won(row["monetary_amount"]) if pd.notna(row.get("monetary_amount")) else "금액 없음"
     body = (
         "<section class='doc-section'>"
-        + "<div class='summary-box'>"
-        + f"<strong>{escape(issue.korean_label)} 관점에서 읽기</strong>"
-        + f"<p>{escape(snippet(row, 320))}</p>"
-        + "</div>"
         + table(
             pd.DataFrame(
                 [
@@ -440,18 +437,187 @@ def render_decision_page(issue: ExternalIssue, row: pd.Series) -> str:
         )
         + "</section>"
     )
-    body += document_text_section("주문", clean_value(row.get("order_text", "")), "주문은 개보위가 해당 사건에서 실제로 명한 조치와 제재를 가장 압축적으로 보여준다.")
-    body += document_text_section("이유", clean_value(row.get("reason_text", "")), "이유 부분은 사실관계, 법 적용, 위반 판단의 근거를 확인하는 핵심 구간이다.")
-    body += document_text_section("결정요지", clean_value(row.get("summary_text", "")), "결정요지는 사건의 판단 구조를 빠르게 파악하기 위한 보조 자료다.")
-    body += document_text_section("별지", clean_value(row.get("appendix_text", "")), "별지는 세부 사실관계나 표 형식 정보가 포함될 수 있어 정량 분석의 검수 대상이다.")
+    body += decision_summary_section(issue, row, amount)
+    body += document_text_section("주문", clean_value(row.get("order_text", "")))
+    body += document_text_section("이유", clean_value(row.get("reason_text", "")))
+    body += document_text_section("결정요지", clean_value(row.get("summary_text", "")))
+    body += document_text_section("별지", clean_value(row.get("appendix_text", "")))
     return html_document(title, "대표 결정문 HTML 보기", body, f"issue-{issue.issue_id:02d}", "../../", compact=True)
 
 
-def document_text_section(title: str, text: str, summary: str) -> str:
+def decision_summary_section(issue: ExternalIssue, row: pd.Series, amount: str) -> str:
+    summaries = [
+        ("전체 요약", build_overall_summary(issue, row, amount)),
+        ("중요 쟁점", build_key_issue_summary(issue, row)),
+        ("사실관계 요약", build_fact_summary(row)),
+        ("법리 요약", build_legal_summary(issue, row)),
+        ("결론 요약", build_conclusion_summary(row, amount)),
+    ]
+    cards = "".join(summary_card(title, text) for title, text in summaries if text)
+    return f"<section class='doc-section'><h2>결정문 요약</h2><div class='summary-grid'>{cards}</div></section>"
+
+
+def summary_card(title: str, text: str) -> str:
+    return f"<div class='summary-box decision-summary'><strong>{escape(title)}</strong><p>{escape(text)}</p></div>"
+
+
+def build_overall_summary(issue: ExternalIssue, row: pd.Series, amount: str) -> str:
+    date = clean_value(row.get("decision_date", ""))
+    title = clean_value(row.get("title", "")) or "제목 없는 결정문"
+    category = CATEGORY_LABELS.get(row.get("document_category", ""), row.get("document_category", ""))
+    conclusion = build_conclusion_summary(row, amount, limit=180)
+    return compact_text(
+        f"{date} {category} 결정문으로, '{title}' 사건이다. {issue.korean_label} 쟁점에서는 {issue.legal_focus}가 핵심 독해축이다. {conclusion}",
+        520,
+    )
+
+
+def build_key_issue_summary(issue: ExternalIssue, row: pd.Series) -> str:
+    factors = clean_value(row.get("factors", ""))
+    case_type = clean_value(row.get("case_type", ""))
+    articles = clean_value(row.get("violated_articles", ""))
+    elements = [f"{issue.korean_label}: {issue_meaning(issue).rstrip('.')}"]
+    if case_type:
+        elements.append(f"사건유형은 {case_type}로 분류된다")
+    if articles:
+        elements.append(f"주요 조문 신호는 {articles}이다")
+    if factors:
+        elements.append(f"판단 요소로 {factors}가 함께 나타난다")
+    return compact_text(". ".join(elements) + ".", 560)
+
+
+def build_fact_summary(row: pd.Series) -> str:
+    text = decision_text(row, ["reason_text", "summary_text", "appendix_text", "order_text"])
+    extracted = extract_relevant_passage(
+        text,
+        [
+            "피심인",
+            "신청",
+            "조사",
+            "사실",
+            "현황",
+            "수집",
+            "이용",
+            "제공",
+            "유출",
+            "접근",
+            "보관",
+            "위탁",
+            "영상",
+            "정보주체",
+            "이용자",
+            "시스템",
+        ],
+    )
+    if extracted:
+        return compact_text(extracted, 620)
+    return compact_text(snippet(row, 520), 620)
+
+
+def build_legal_summary(issue: ExternalIssue, row: pd.Series) -> str:
+    articles = clean_value(row.get("violated_articles", ""))
+    factors = clean_value(row.get("factors", ""))
+    reason = extract_relevant_passage(
+        decision_text(row, ["reason_text", "summary_text", "order_text"]),
+        ["위반", "법", "조", "동의", "안전조치", "목적", "제공", "처리", "보호위원회", "판단", "해당"],
+        max_parts=2,
+    )
+    pieces = []
+    if articles:
+        pieces.append(f"주요 조문은 {articles}이다")
+    pieces.append(f"이 결정문은 {issue.legal_focus}를 중심으로 읽을 수 있다")
+    if factors:
+        pieces.append(f"자동 라벨상 판단 요소는 {factors}이다")
+    if reason:
+        pieces.append(f"원문상 법리 판단 근거는 '{compact_text(reason, 260)}' 부분에 압축되어 있다")
+    return compact_text(". ".join(pieces) + ".", 620)
+
+
+def build_conclusion_summary(row: pd.Series, amount: str, limit: int = 520) -> str:
+    sanctions = clean_value(row.get("sanction_types", ""))
+    order = extract_relevant_passage(
+        clean_value(row.get("order_text", "")),
+        ["시정", "과징금", "과태료", "공표", "권고", "개선", "제공", "수 있다", "수 없다", "부과", "명령", "통지"],
+        max_parts=3,
+    )
+    pieces = []
+    if sanctions:
+        pieces.append(f"결론 유형은 {sanctions}이다")
+    if amount and amount != "금액 없음":
+        pieces.append(f"금액 제재 신호는 {amount}로 추출됐다")
+    if order:
+        pieces.append(f"주문 요지는 '{compact_text(order, 300)}'이다")
+    if not pieces:
+        pieces.append(compact_text(first_text(row, ["order_text", "summary_text", "reason_text"]), 360))
+    return compact_text(". ".join(pieces) + ".", limit)
+
+
+def extract_relevant_passage(text: str, keywords: list[str], max_parts: int = 3) -> str:
+    cleaned = normalize_decision_text(text)
+    if not cleaned or is_heading_like(cleaned):
+        return ""
+    parts = split_summary_units(cleaned)
+    if not parts:
+        return ""
+    selected = [part for part in parts if any(keyword in part for keyword in keywords)]
+    if not selected:
+        selected = parts
+    return " ".join(selected[:max_parts])
+
+
+def split_summary_units(text: str) -> list[str]:
+    candidates = re.split(r"(?<=[.。다])\s+|\n+|(?=\b[0-9]+\.\s)|(?=[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+\.\s)", text)
+    units = []
+    for candidate in candidates:
+        item = strip_heading_prefix(candidate.strip())
+        if len(item) < 18:
+            continue
+        if is_heading_like(item):
+            continue
+        units.append(item)
+    return units
+
+
+def decision_text(row: pd.Series, columns: list[str]) -> str:
+    values = []
+    for column in columns:
+        value = clean_value(row.get(column, ""))
+        if value and not is_heading_like(normalize_decision_text(value)):
+            values.append(value)
+    return "\n".join(values)
+
+
+def strip_heading_prefix(text: str) -> str:
+    text = re.sub(r"^[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+\.\s*[가-힣A-Za-zㆍ·\s]{1,24}(?=\s|$)", "", text).strip()
+    text = re.sub(r"^[0-9]+\.\s*[가-힣A-Za-zㆍ·\s]{1,24}(?=\s|$)", "", text).strip()
+    return text
+
+
+def is_heading_like(text: str) -> bool:
+    if len(text) < 36 and re.fullmatch(r"[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩIVX0-9.\s()가-힣A-Za-zㆍ·-]+", text):
+        return True
+    return bool(re.fullmatch(r"(기초 사실|인정 사실|판단|결론|주문|이유|검토|개요|조사 배경)", text))
+
+
+def normalize_decision_text(text: str) -> str:
+    text = re.sub(r"<img\b[^>]*>", " ", text or "", flags=re.IGNORECASE)
+    text = re.sub(r"\(각주:[^)]+\)", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def compact_text(text: str, limit: int = 260) -> str:
+    cleaned = normalize_decision_text(text)
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "..."
+
+
+def document_text_section(title: str, text: str) -> str:
     if not text.strip():
         return ""
     chunks = paragraph_chunks(text)
-    html = f"<section class='doc-section'><h2>{escape(title)}</h2><div class='summary-box'><strong>읽는 포인트</strong><p>{escape(summary)}</p></div>"
+    html = f"<section class='doc-section'><h2>{escape(title)}</h2>"
     for chunk in chunks:
         html += f"<p>{escape(chunk)}</p>"
     return html + "</section>"

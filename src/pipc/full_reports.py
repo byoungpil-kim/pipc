@@ -600,7 +600,8 @@ def topic_svg(data: dict, clusters: list[dict]) -> str:
         opacity = ".82" if cluster_id in selected_ids else ".22"
         title = str(page.get("title", ""))
         data_attr = f" data-cluster='{cluster_id}'" if cluster_id in selected_ids else ""
-        parts.append(f"<circle class='{point_class}'{data_attr} cx='{x:.1f}' cy='{y:.1f}' r='4.2' fill='{color}' opacity='{opacity}'><title>{escape_svg(title)}</title></circle>")
+        radius = "2.6" if cluster_id in selected_ids else "1.8"
+        parts.append(f"<circle class='{point_class}'{data_attr} cx='{x:.1f}' cy='{y:.1f}' r='{radius}' fill='{color}' opacity='{opacity}'><title>{escape_svg(title)}</title></circle>")
     for cluster in clusters:
         x = float(cluster.get("x", 50)) / 100 * (width - 80) + 40
         y = (100 - float(cluster.get("y", 50))) / 100 * (height - 80) + 40
@@ -611,17 +612,13 @@ def topic_svg(data: dict, clusters: list[dict]) -> str:
 
 
 def cluster_buttons(clusters: list[dict]) -> str:
-    html = "<div class='topic-clusters'>"
+    html = "<div class='topic-clusters'><label for='topic-cluster-select'>토픽 선택</label><select id='topic-cluster-select' class='topic-cluster-select'>"
     for cluster in clusters:
         cluster_id = int(cluster.get("cluster_idx", -1))
         label = escape_svg(str(cluster.get("label", "")))
         size = int(cluster.get("size", 0))
-        html += (
-            f"<button class='topic-cluster-button' type='button' data-cluster='{cluster_id}'>"
-            f"<span>{label}</span><strong>{size:,}</strong>"
-            "</button>"
-        )
-    return html + "</div>"
+        html += f"<option value='{cluster_id}'>{label} · {size:,}건</option>"
+    return html + "</select></div>"
 
 
 def topic_data_script(data: dict, clusters: list[dict]) -> str:
@@ -662,13 +659,14 @@ def topic_interaction_script() -> str:
     atlas.dataset.ready = '1';
     const data = JSON.parse(atlas.querySelector('.topic-data').textContent);
     const detail = atlas.querySelector('.topic-detail');
-    const buttons = Array.from(atlas.querySelectorAll('[data-cluster]'));
+    const select = atlas.querySelector('.topic-cluster-select');
     const render = (clusterId) => {
       const cluster = data.clusters.find((item) => String(item.cluster_idx) === String(clusterId)) || data.clusters[0];
       if (!cluster) return;
       atlas.querySelectorAll('[data-cluster]').forEach((el) => {
         el.classList.toggle('is-selected', String(el.dataset.cluster) === String(cluster.cluster_idx));
       });
+      if (select) select.value = String(cluster.cluster_idx);
       const rows = cluster.decisions.map((decision) => `
         <tr>
           <td>${escapeHtml(decision.decision_date || '')}</td>
@@ -697,7 +695,10 @@ def topic_interaction_script() -> str:
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
-    buttons.forEach((button) => button.addEventListener('click', () => render(button.dataset.cluster)));
+    atlas.querySelectorAll('.topic-point[data-cluster], .topic-label[data-cluster]').forEach((point) => {
+      point.addEventListener('click', () => render(point.dataset.cluster));
+    });
+    if (select) select.addEventListener('change', () => render(select.value));
     if (data.clusters.length) render(data.clusters[0].cluster_idx);
   });
 })();
